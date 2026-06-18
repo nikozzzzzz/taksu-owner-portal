@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Wellness Bali — Light theme */
+    --background: 40 40% 97%;        /* cream #FAF8F3 */
+    --foreground: 120 17% 21%;       /* forest #2C3E2C */
+
+    --card: 38 35% 93%;              /* parchment #F2EDE0 */
+    --card-foreground: 120 17% 21%;
+
+    --popover: 38 35% 93%;
+    --popover-foreground: 120 17% 21%;
+
+    --primary: 112 22% 33%;          /* jungle #4A6B3A */
+    --primary-foreground: 40 40% 97%;
+
+    --secondary: 35 30% 73%;         /* sand #D4C5A0 */
+    --secondary-foreground: 120 17% 21%;
+
+    --muted: 35 25% 80%;
+    --muted-foreground: 110 8% 44%;  /* sage #6B7B6B */
+
+    --accent: 35 30% 73%;            /* sand */
+    --accent-foreground: 120 17% 21%;
+
+    --destructive: 19 57% 46%;       /* terracotta #B85C38 */
+    --destructive-foreground: 40 40% 97%;
+
+    --border: 35 25% 82%;
+    --input: 35 25% 85%;
+    --ring: 112 22% 33%;
+
+    --radius: 0.5rem;
+
+    /* Chart colors */
+    --chart-1: 112 22% 33%;    /* jungle */
+    --chart-2: 19 57% 46%;     /* terracotta */
+    --chart-3: 35 30% 65%;     /* sand deep */
+    --chart-4: 110 8% 44%;     /* sage */
+    --chart-5: 120 17% 21%;    /* forest */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  /* Tabular numbers for financial data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}
+
+@layer components {
+  /* Page layout */
+  .portal-page {
+    @apply space-y-6 p-6 md:p-8;
+  }
+
+  .portal-page-header {
+    @apply space-y-1;
+  }
+
+  .portal-page-title {
+    @apply font-serif text-2xl font-semibold tracking-tight text-taksu-forest md:text-3xl;
+  }
+
+  .portal-page-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Cards */
+  .taksu-card {
+    @apply rounded-lg border border-border bg-card p-6 shadow-card;
+  }
+
+  .taksu-card-elevated {
+    @apply rounded-lg border border-border bg-card p-6 shadow-card-md;
+  }
+
+  /* Status indicators */
+  .status-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+
+  .status-dot-green {
+    @apply status-dot bg-taksu-jungle;
+  }
+
+  .status-dot-yellow {
+    @apply status-dot bg-amber-400;
+  }
+
+  .status-dot-red {
+    @apply status-dot bg-taksu-terracotta;
+  }
+
+  /* Financial numbers */
+  .amount-positive {
+    @apply tabular-nums font-semibold text-taksu-jungle;
+  }
+
+  .amount-negative {
+    @apply tabular-nums font-semibold text-taksu-terracotta;
+  }
+
+  .amount-neutral {
+    @apply tabular-nums font-medium text-taksu-forest;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse rounded bg-muted;
+  }
+
+  /* Sidebar navigation */
+  .nav-link {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-taksu-sage transition-colors duration-150 hover:bg-taksu-parchment hover:text-taksu-forest;
+  }
+
+  .nav-link-active {
+    @apply nav-link bg-taksu-parchment text-taksu-jungle;
+  }
+}
+
+@layer utilities {
+  /* Glass morphism */
+  .glass {
+    @apply bg-white/60 backdrop-blur-sm;
+  }
+
+  /* Text gradients */
+  .text-gradient-taksu {
+    @apply bg-gradient-to-r from-taksu-jungle to-taksu-bamboo bg-clip-text text-transparent;
+  }
+
+  /* Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.taksu.sand') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: theme('colors.taksu.sand');
+    border-radius: 3px;
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: fade-in 0.3s ease-out;
+  }
+}
