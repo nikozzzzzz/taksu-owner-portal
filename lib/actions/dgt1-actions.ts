@@ -66,6 +66,7 @@ export async function uploadDgt1(formData: FormData) {
     // 2. Update Owner Record
     const { error: updateError } = await supabase
       .from('owners')
+      // @ts-ignore
       .update({
         dgt1_document_url: publicUrl,
         dgt1_valid_until: expiryDate,

@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils/currency';
 import { formatDateRange } from '@/lib/utils/dates';
 import type { Database } from '@/lib/supabase/types';
 
-type BookingRow = Database['public']['Tables']['v_bookings_anonymized']['Row'];
+type BookingRow = Database['public']['Views']['v_bookings_anonymized']['Row'];
 
 const CHANNEL_COLORS: Record<string, string> = {
   airbnb: 'bg-rose-100 text-rose-700',
