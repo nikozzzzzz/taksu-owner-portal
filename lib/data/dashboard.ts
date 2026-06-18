@@ -2,14 +2,14 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 
 type StatementRow = Database['public']['Tables']['monthly_statements']['Row'];
-type BookingRow = Database['public']['Tables']['v_bookings_anonymized']['Row'];
+type BookingRow = Database['public']['Views']['v_bookings_anonymized']['Row'];
 
 // ─── Dashboard Data ───────────────────────────────────────────────────────────
 
 export async function getOwnerDashboard(ownerId: string) {
   const supabase = await createServerSupabaseClient();
 
-  const { data, error } = await supabase.rpc('get_owner_dashboard', {
+  const { data, error } = await (supabase as any).rpc('get_owner_dashboard', {
     p_owner_id: ownerId,
   });
 

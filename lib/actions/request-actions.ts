@@ -41,9 +41,7 @@ export async function submitRequest(formData: FormData) {
 
     const { category, subject, description } = validatedFields.data;
 
-    // Insert request
-    const { error: insertError } = await supabase
-      .from('owner_requests')
+    const { error: insertError } = await (supabase.from('owner_requests') as any)
       .insert({
         owner_id: owner.id,
         villa_id: villaId,

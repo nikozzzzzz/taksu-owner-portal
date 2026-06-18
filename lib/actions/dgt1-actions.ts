@@ -64,9 +64,7 @@ export async function uploadDgt1(formData: FormData) {
       .getPublicUrl(filePath);
 
     // 2. Update Owner Record
-    const { error: updateError } = await supabase
-      .from('owners')
-      // @ts-ignore
+    const { error: updateError } = await (supabase.from('owners') as any)
       .update({
         dgt1_document_url: publicUrl,
         dgt1_valid_until: expiryDate,
@@ -81,7 +79,7 @@ export async function uploadDgt1(formData: FormData) {
     }
     
     // 3. Log Audit
-    await supabase.from('owner_portal_audit').insert({
+    await (supabase.from('owner_portal_audit') as any).insert({
       owner_id: owner.id,
       action: 'uploaded_dgt1',
       entity_type: 'owners',

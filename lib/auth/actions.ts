@@ -189,8 +189,8 @@ async function logAuthEvent(action: string, email?: string) {
 
     if (!owner) return;
 
-    await supabase.from('owner_portal_audit').insert({
-      owner_id: owner.id,
+    await (supabase.from('owner_portal_audit') as any).insert({
+      owner_id: (owner as any).id,
       action,
       entity_type: 'auth',
       success: true,
@@ -198,12 +198,11 @@ async function logAuthEvent(action: string, email?: string) {
 
     // Update last_login_at on login
     if (action === 'LOGIN_SUCCESS') {
-      await supabase
-        .from('owners')
+      await (supabase.from('owners') as any)
         .update({
           last_login_at: new Date().toISOString(),
         })
-        .eq('id', owner.id);
+        .eq('id', (owner as any).id);
     }
   } catch {
     // Don't fail auth flow on audit error
