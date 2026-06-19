@@ -43,11 +43,12 @@ export async function getDgt1Status(ownerId: string) {
       rate: 0.20
     };
   }
+  const ownerData = data as any;
   
   return {
-    status: data.dgt1_status,
-    validUntil: data.dgt1_valid_until,
-    documentUrl: data.dgt1_document_url,
-    rate: data.pph26_effective_rate
+    status: ownerData.dgt1_status,
+    validUntil: ownerData.dgt1_valid_until,
+    documentUrl: ownerData.dgt1_document_url,
+    rate: ownerData.pph26_effective_rate
   };
 }
