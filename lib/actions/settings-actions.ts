@@ -38,8 +38,7 @@ export async function updateProfileInfo(formData: FormData) {
 
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await supabase
-    .from('owners')
+  const { error } = await (supabase.from('owners') as any)
     .update({
       full_name: fullName,
       passport_number: passportNumber || null,
@@ -47,7 +46,7 @@ export async function updateProfileInfo(formData: FormData) {
       date_of_birth: dateOfBirth || null,
       country_of_residence: countryOfResidence || null,
     })
-    .eq('id', owner.id);
+    .eq('id', (owner as any).id);
 
   if (error) {
     return { success: false, error: error.message };
@@ -74,13 +73,12 @@ export async function updatePreferences(formData: FormData) {
 
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await supabase
-    .from('owners')
+  const { error } = await (supabase.from('owners') as any)
     .update({
       preferred_language: preferredLanguage || 'en',
       email_notifications_enabled: emailNotificationsEnabled,
     })
-    .eq('id', owner.id);
+    .eq('id', (owner as any).id);
 
   if (error) {
     return { success: false, error: error.message };
@@ -114,8 +112,7 @@ export async function updateBankingInfo(formData: FormData) {
 
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await supabase
-    .from('owners')
+  const { error } = await (supabase.from('owners') as any)
     .update({
       bank_name: bankName || null,
       bank_account_iban: bankAccountIban || null,
@@ -126,7 +123,7 @@ export async function updateBankingInfo(formData: FormData) {
       banking_last_changed_at: new Date().toISOString(),
       banking_last_changed_by_id: user.id,
     })
-    .eq('id', owner.id);
+    .eq('id', (owner as any).id);
 
   if (error) {
     return { success: false, error: error.message };
@@ -134,10 +131,10 @@ export async function updateBankingInfo(formData: FormData) {
 
   // Audit log
   await (supabase.from('owner_portal_audit') as any).insert({
-    owner_id: owner.id,
+    owner_id: (owner as any).id,
     action: 'BANKING_INFO_UPDATED',
     entity_type: 'owner',
-    entity_id: owner.id,
+    entity_id: (owner as any).id,
     success: true,
   });
 
