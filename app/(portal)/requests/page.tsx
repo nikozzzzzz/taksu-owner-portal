@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireOwner } from '@/lib/auth/middleware';
+import { requireOwner, getAuthUser } from '@/lib/auth/middleware';
 import { getOwnerRequests } from '@/lib/data/requests-data';
 import { MessageSquarePlus } from 'lucide-react';
 import { RequestList } from '@/components/requests/request-list';
@@ -12,7 +12,11 @@ export const metadata: Metadata = {
 
 export default async function RequestsPage() {
   const owner = await requireOwner();
-  const requests = await getOwnerRequests(owner.id);
+  const user = await getAuthUser();
+  const role = user?.app_metadata?.role || 'guest';
+  const isAdmin = ['admin', 'root'].includes(role);
+  
+  const requests = await getOwnerRequests(owner.id, isAdmin);
 
   return (
     <div className="portal-page animate-in">

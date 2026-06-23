@@ -21,6 +21,7 @@ export interface Database {
           date_of_birth: string | null;
           country_of_residence: string;
           tax_residency_country: string;
+          role: 'root' | 'admin' | 'accountant' | 'investor' | 'service' | 'guest';
           npwp_indonesia: string | null;
           dgt1_status: 'valid' | 'expired' | 'pending_review' | 'none';
           dgt1_valid_until: string | null;

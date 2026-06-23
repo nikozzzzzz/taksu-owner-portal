@@ -75,5 +75,12 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Admin route restrictions
+  if (user && pathname.startsWith('/admin') && !['admin', 'root'].includes(role)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
   return supabaseResponse;
 }

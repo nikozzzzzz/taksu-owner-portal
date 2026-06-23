@@ -12,6 +12,7 @@ import {
   MessageSquare,
   FolderOpen,
   Settings,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -86,6 +87,8 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
     return true;
   });
 
+  const isAdmin = ['admin', 'root'].includes(role);
+
   return (
     <aside className="flex h-full flex-col bg-taksu-forest text-white">
       {/* Logo Area */}
@@ -150,7 +153,29 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
         {/* Settings separator */}
         <div className="my-4 border-t border-white/10" />
 
-        <ul>
+        <ul className="space-y-0.5">
+          {isAdmin && (
+            <li>
+              <Link
+                href="/admin/users"
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                  pathname.startsWith('/admin')
+                    ? 'bg-white/10 text-white'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <ShieldCheck
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    pathname.startsWith('/admin') ? 'text-taksu-bamboo' : 'text-white/40'
+                  )}
+                />
+                <span>Admin Panel</span>
+              </Link>
+            </li>
+          )}
           <li>
             <Link
               href="/settings"

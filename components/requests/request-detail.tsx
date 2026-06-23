@@ -25,11 +25,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { RequestStatusBadge } from '@/components/requests/request-status-badge';
+import { updateRequestStatus } from '@/lib/actions/admin-actions';
 import { cancelRequest, addComment } from '@/lib/actions/request-actions';
 import type { RequestWithComments } from '@/lib/data/requests-data';
 
 interface RequestDetailProps {
   request: RequestWithComments;
+  isAdmin?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -124,7 +126,7 @@ function StatusTimeline({ status }: { status: string }) {
   );
 }
 
-export function RequestDetail({ request }: RequestDetailProps) {
+export function RequestDetail({ request, isAdmin = false }: RequestDetailProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -133,6 +135,8 @@ export function RequestDetail({ request }: RequestDetailProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const isClosed = TERMINAL_STATUSES.has(request.status);
   const canCancel = request.status === 'pending';
@@ -159,6 +163,20 @@ export function RequestDetail({ request }: RequestDetailProps) {
     } else {
       setCancelDialogOpen(false);
       router.refresh();
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!isAdmin) return;
+    setIsUpdatingStatus(true);
+    setActionError(null);
+    try {
+      await updateRequestStatus(request.id, newStatus);
+      router.refresh();
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to update status');
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -259,8 +277,52 @@ export function RequestDetail({ request }: RequestDetailProps) {
             </div>
           )}
 
+          {/* Admin Controls */}
+          {isAdmin && (
+            <div className="pt-4 border-t border-border flex flex-wrap gap-2 justify-between items-center bg-taksu-cream/20 -mx-6 -mb-6 p-4 rounded-b-xl">
+              <span className="text-sm font-semibold text-taksu-sage">Admin Actions:</span>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  disabled={isUpdatingStatus || request.status === 'in_review'}
+                  onClick={() => handleStatusChange('in_review')}
+                >
+                  Mark In Review
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="bg-taksu-jungle/10 text-taksu-jungle border-taksu-jungle hover:bg-taksu-jungle/20"
+                  disabled={isUpdatingStatus || request.status === 'approved'}
+                  onClick={() => handleStatusChange('approved')}
+                >
+                  Approve
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  disabled={isUpdatingStatus || request.status === 'completed'}
+                  onClick={() => handleStatusChange('completed')}
+                >
+                  Complete
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-taksu-terracotta border-taksu-terracotta hover:bg-taksu-terracotta/10"
+                  disabled={isUpdatingStatus || request.status === 'rejected'}
+                  onClick={() => handleStatusChange('rejected')}
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Cancel button */}
-          {canCancel && (
+          {!isAdmin && canCancel && (
             <div className="pt-2 border-t border-border flex justify-end">
               <Button
                 variant="outline"
@@ -320,7 +382,7 @@ export function RequestDetail({ request }: RequestDetailProps) {
                   </div>
                   <div className={`flex items-center gap-1.5 text-[10px] text-taksu-sage ${isOwner ? 'flex-row-reverse' : ''}`}>
                     <span className="font-medium">
-                      {isOwner ? 'You' : 'Taksu Team'}
+                      {isOwner ? (isAdmin ? 'Owner' : 'You') : 'Taksu Team'}
                     </span>
                     <span>·</span>
                     <span>{format(parseISO(comment.created_at), 'MMM d, HH:mm')}</span>

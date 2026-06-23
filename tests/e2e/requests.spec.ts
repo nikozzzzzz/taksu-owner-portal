@@ -1,36 +1,63 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Owner Requests Flow', () => {
-  test.beforeEach(async ({ page }) => {
+  const subjectStr = `E2E Test Request ${Date.now()}`;
+
+  test('End-to-End: Investor creates request, Admin approves it', async ({ page, browser }) => {
+    // ---- 1. INVESTOR CREATES REQUEST ----
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'test.investor@example.com');
+    await page.fill('input[type="email"]', 'investor@test.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/.*\/dashboard/);
-  });
 
-  test('User can navigate to Requests page and see the list', async ({ page }) => {
-    await page.click('nav a:has-text("Requests")');
-    await expect(page).toHaveURL(/.*\/requests/);
-    
-    // Expect the page title
-    await expect(page.locator('h1:has-text("Owner Requests")')).toBeVisible();
-
-    // Expect a "New Request" button to exist
-    await expect(page.locator('button:has-text("New Request"), a:has-text("New Request")')).toBeVisible();
-  });
-
-  test('User can open the New Request form', async ({ page }) => {
     await page.goto('/requests');
     
     // Open the new request modal/page
-    await page.click('button:has-text("New Request"), a:has-text("New Request")');
+    await page.click('button:has-text("New Request")');
     
-    // Expect form fields to be visible
-    await expect(page.locator('label:has-text("Subject")')).toBeVisible();
-    await expect(page.locator('label:has-text("Description")')).toBeVisible();
+    // Fill the form
+    await page.fill('input[name="subject"]', subjectStr);
+    await page.fill('textarea[name="description"]', 'This is a test description for E2E flow.');
+    await page.click('button[type="submit"]:has-text("Submit")');
     
-    // We do not submit it here to avoid polluting the DB on every test run,
-    // or we could submit and then have a cleanup step.
+    // Wait for the modal to close and request to appear
+    await expect(page.locator(`text=${subjectStr}`)).toBeVisible();
+    await expect(page.locator(`text=${subjectStr}`).locator('..').locator('text=Pending')).toBeVisible();
+
+    // Sign out
+    await page.goto('/login'); // Forces logout or we can click logout
+
+    // ---- 2. ADMIN APPROVES REQUEST ----
+    const adminContext = await browser.newContext();
+    const adminPage = await adminContext.newPage();
+    
+    await adminPage.goto('/login');
+    await adminPage.fill('input[type="email"]', 'admin@test.com');
+    await adminPage.fill('input[type="password"]', 'TestPassword123!');
+    await adminPage.click('button[type="submit"]');
+    await expect(adminPage).toHaveURL(/.*\/dashboard/);
+
+    // Go to requests (Admin sees all)
+    await adminPage.goto('/requests');
+    await expect(adminPage.locator(`text=${subjectStr}`)).toBeVisible();
+
+    // Click on the request
+    await adminPage.click(`text=${subjectStr}`);
+
+    // Inside detail view, we should see admin actions
+    await expect(adminPage.locator('text=Admin Actions:')).toBeVisible();
+
+    // Change status to Approved
+    await adminPage.click('button:has-text("Approve")');
+
+    // Wait for status update
+    await expect(adminPage.locator('.bg-taksu-jungle\\/10')).toBeVisible(); // Hacky check for green status badge
+    // Also "Admin Actions:" might be updated if status is terminal, but approved is not terminal
+    
+    // Check timeline shows Approved
+    await expect(adminPage.locator('.text-taksu-bamboo:has-text("Approved")')).toBeVisible();
+
+    await adminContext.close();
   });
 });

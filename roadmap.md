@@ -147,147 +147,13 @@
 
 ---
 
-## Phase 4: Statements (Week 4-5) ✅
-
-**Цель:** View statements list, detail, download PDF/Excel.
-
-### Tasks
-
-- [x] 4.1 Statements list page (paginated, filterable)
-- [x] 4.2 Statement detail page (full breakdown, expense details)
-- [x] 4.3 Calculations module (net profit, management fee, PPh 26)
-- [x] 4.4 PDF generation (statement template, React-PDF)
-- [x] 4.5 Excel export (multi-sheet workbook)
-- [x] 4.6 Bukti Potong PDF (official DGT format)
-- [x] 4.7 API routes (list, detail, pdf, excel, bukti-potong)
-- [x] 4.8 Receipt viewer modal
-
-### Acceptance Criteria
-
-- [x] Statements list shows seed data
-- [x] Statement detail shows full breakdown
-- [x] Expense categories expand с item details
-- [x] PDF download works, formats correctly
-- [x] Excel download has all sheets
-- [x] Bukti Potong PDF matches DGT format
-- [x] Re-auth required для bulk downloads (3+)
-- [x] Mobile responsive
-
----
-
-## Phase 5: Calendar & Analytics (Week 6-7) ✅
-
-**Цель:** Booking calendar + analytics dashboard.
-
-### Tasks
-
-- [x] 5.1 Calendar page (month view с booking bars)
-- [x] 5.2 MonthCalendar component
-- [x] 5.3 BookingEvent component (color-coded by channel)
-- [x] 5.4 BookingModal component (anonymized detail popup)
-- [x] 5.5 ChannelLegend component
-- [x] 5.6 Analytics page (period selector)
-- [x] 5.7 Revenue trend chart (Recharts, line)
-- [x] 5.8 KPI tiles (RevPAR, ADR, Occupancy)
-- [x] 5.9 Market benchmark comparison
-- [x] 5.10 Channel mix breakdown (donut/bar)
-- [x] 5.11 Seasonality view
-- [x] 5.12 Analytics calculations module
-
-### Acceptance Criteria
-
-- [x] Calendar shows seed bookings correctly
-- [x] Anonymized guest data
-- [x] Analytics shows all charts
-- [x] Market benchmark comparison clear
-- [x] Period selector works
-- [x] Charts responsive
-
----
-
-## Phase 6: Tax Documents & DGT-1 (Week 8-9) ✅
-
-**Goal:** Full DGT-1 workflow + bukti potong access.
-
-**Tasks:**
-
-1. **Tax documents page** (`app/(portal)/tax-documents/page.tsx`)
-   - DGT-1 status card (current state + expiry)
-   - Bukti Potong table (all historical)
-   - Download buttons
-   - Annual summary (if available)
-   - Guide section (how to use bukti potong)
-
-2. **DGT-1 upload flow** (`app/(portal)/tax-documents/upload-dgt1/page.tsx`)
-   - Step 1: Explanation (what is DGT-1)
-   - Step 2: Upload PDF (drag-drop)
-   - Step 3: Enter expiry date
-   - Step 4: Confirmation
-   - Success page с next steps
-
-3. **Components:**
-   - `<Dgt1StatusCard>` — visual status
-   - `<Dgt1UploadFlow>` — multi-step
-   - `<BuktiPotongTable>` — sortable list
-   - `<AnnualSummary>` — year totals
-
-4. **Upload action**
-   - Validate PDF (size, format)
-   - Upload to Supabase Storage (`dgt1/{owner_id}/{filename}`)
-   - Update `owners.dgt1_*` fields
-   - Set status to `pending_review`
-   - Notify admin (email to GM)
-   - Audit log
-
-5. **DGT-1 lifecycle**
-   - Display days to expiry
-   - Color-coded urgency (green > 90, yellow 30-90, red < 30)
-   - Calculate "savings if renewed" estimate
-   - Email reminders (will be done in background job, just UI here)
-
-6. **Bukti potong download**
-   - Re-auth required
-   - Generate on-demand или serve cached
-   - Mark as downloaded в audit
-
-**Acceptance Criteria:**
-- [x] DGT-1 status correctly displayed
-- [x] Upload PDF saves to Storage
-- [x] Admin notification triggered
-- [x] All bukti potong listed
-- [x] Download with re-auth works
-- [x] Annual summary available (если year complete)
-- [x] Expiry alerts clearly visible
-
----
-
-## Phase 7: Pool Position & Requests (Week 10) ✅
-
-**Goal:** Algorithm transparency and ticket system.
-
-**Tasks:**
-
-1. **Pool Position Page** (`app/(portal)/pool-position/page.tsx`)
-   - `<PoolMetricsCard>` (score, fair share target, 90-day revenue/nights)
-   - `<AlgorithmExplainer>` (text guide)
-   - Read from `pool_rotation_state`
-
-2. **Owner Requests Page** (`app/(portal)/requests/page.tsx`)
-   - `<RequestList>` (filter: all, open, resolved)
-   - `<CreateRequestModal>` (Category, Subject, Description)
-
-3. **Data & Actions**
-   - `lib/data/pool-data.ts`
-   - `lib/data/requests-data.ts`
-   - `lib/actions/request-actions.ts` (validate and insert into `owner_requests`)
-
-**Acceptance Criteria:**
-- [x] Pool metrics correctly displayed
-- [x] Algorithm explainer clear
-- [x] New request form works (validation, db insert)
-- [x] Request list updates immediately
-- [x] Filters work correctlys
-- [x] Real-time updates work
+### Phase 7: Administrative Tools & RBAC 
+**Status:** ✅ Completed
+**Goal:** Implement robust role-based access control and provide internal staff with management tools.
+- [x] Integrate `owners.role` with Supabase Auth `app_metadata` (via triggers).
+- [x] Protect API routes and pages using Next.js Edge Middleware for roles (`root`, `admin`, `accountant`, etc.).
+- [x] Develop **Admin Panel** (`/admin/users`, `/admin/villas`) for `root`/`admin`.
+- [x] Allow `admin` to update Request tickets (Approve, Complete, Reject).
 
 ---
 
@@ -314,6 +180,16 @@
 - [ ] 8.16 Sentry + Posthog setup
 - [ ] 8.17 Testing Infrastructure (Playwright E2E & Jest Unit)
 - [ ] 8.18 CI/CD Testing integration in deploy script
+
+### Phase 9: Intensive E2E Auto Tests
+**Status:** 🔄 In Progress
+**Goal:** Build a comprehensive automated test suite testing the entire application from different user roles.
+- [x] Develop E2E Test Data Setup (`global.setup.ts`) to inject test accounts for every role.
+- [x] Write Auth & RBAC E2E Tests (verifying redirects and path protections).
+- [x] Write Dashboard & Metrics E2E Tests.
+- [x] Write Tickets (Requests) Lifecycle Tests (Investor creates -> Admin approves).
+- [x] Write Statements & Downloads Tests.
+- [ ] Stabilize Playwright test environment (currently failing due to auth cookie persistence in CI).
 
 ### Acceptance Criteria
 

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { requireOwner } from '@/lib/auth/middleware';
+import { requireOwner, getAuthUser } from '@/lib/auth/middleware';
 import { getOwnerRequest } from '@/lib/data/requests-data';
 import { RequestDetail } from '@/components/requests/request-detail';
 
@@ -11,7 +11,11 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const owner = await requireOwner();
-  const request = await getOwnerRequest(id, owner.id);
+  const user = await getAuthUser();
+  const role = user?.app_metadata?.role || 'guest';
+  const isAdmin = ['admin', 'root'].includes(role);
+  
+  const request = await getOwnerRequest(id, owner.id, isAdmin);
 
   return {
     title: request ? `Request: ${request.subject}` : 'Request Not Found',
@@ -21,7 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function RequestDetailPage({ params }: Props) {
   const { id } = await params;
   const owner = await requireOwner();
-  const request = await getOwnerRequest(id, owner.id);
+  const user = await getAuthUser();
+  const role = user?.app_metadata?.role || 'guest';
+  const isAdmin = ['admin', 'root'].includes(role);
+  
+  const request = await getOwnerRequest(id, owner.id, isAdmin);
 
   if (!request) {
     notFound();
@@ -29,7 +37,7 @@ export default async function RequestDetailPage({ params }: Props) {
 
   return (
     <div className="portal-page animate-in">
-      <RequestDetail request={request} />
+      <RequestDetail request={request} isAdmin={isAdmin} />
     </div>
   );
 }

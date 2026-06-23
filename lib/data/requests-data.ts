@@ -8,14 +8,16 @@ export interface RequestWithComments extends OwnerRequestRow {
   comments: RequestCommentRow[];
 }
 
-export async function getOwnerRequests(ownerId: string): Promise<OwnerRequestRow[]> {
+export async function getOwnerRequests(ownerId: string, isAdmin: boolean = false): Promise<OwnerRequestRow[]> {
   const supabase = await createServerSupabaseClient();
 
-  const { data, error } = await supabase
-    .from('owner_requests')
-    .select('*')
-    .eq('owner_id', ownerId)
-    .order('created_at', { ascending: false });
+  let query = supabase.from('owner_requests').select('*');
+  
+  if (!isAdmin) {
+    query = query.eq('owner_id', ownerId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching owner requests:', error);
@@ -27,16 +29,17 @@ export async function getOwnerRequests(ownerId: string): Promise<OwnerRequestRow
 
 export async function getOwnerRequest(
   id: string,
-  ownerId: string
+  ownerId: string,
+  isAdmin: boolean = false
 ): Promise<RequestWithComments | null> {
   const supabase = await createServerSupabaseClient();
 
-  const { data: request, error: requestError } = await supabase
-    .from('owner_requests')
-    .select('*')
-    .eq('id', id)
-    .eq('owner_id', ownerId)
-    .single();
+  let query = supabase.from('owner_requests').select('*').eq('id', id);
+  if (!isAdmin) {
+    query = query.eq('owner_id', ownerId);
+  }
+
+  const { data: request, error: requestError } = await query.single();
 
   if (requestError || !request) {
     return null;
