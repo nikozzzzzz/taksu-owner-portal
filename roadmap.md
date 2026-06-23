@@ -332,4 +332,6 @@
 |------|------|---------|
 | 2026-06-18 | Phase 1 | 📋 Roadmap создан, начата Phase 1 |
 | 2026-06-18 | Phase 1 | ✅ Phase 1 завершена: Next.js 15 + Supabase + Tailwind "Wellness Bali" + все layouts + auth компоненты + SQL миграции. Dev server запущен на localhost:3000 |
+| 2026-06-22 | Phase 7 | ✅ Завершены Owner Requests Lifecycle. Добавлено управление статусами и комментариями. |
+| 2026-06-22 | Infrastructure | ✅ Переход с облачного Supabase на локальный Self-Hosted Docker стек на тестовом сервере (192.168.101.122). Обновлён скрипт деплоя. Создан DEPLOYMENT.md. |
 

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
 
-  return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'), {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  return NextResponse.redirect(new URL('/login', baseUrl), {
     status: 302,
   });
 }

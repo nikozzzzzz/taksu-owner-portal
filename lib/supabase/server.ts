@@ -4,9 +4,10 @@ import type { Database } from './types';
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
+  const internalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    internalUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -30,9 +31,10 @@ export async function createServerSupabaseClient() {
 
 export async function createServiceRoleSupabaseClient() {
   const cookieStore = await cookies();
+  const internalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    internalUrl,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {

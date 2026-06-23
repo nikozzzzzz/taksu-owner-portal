@@ -33,10 +33,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const cookieNames = request.cookies.getAll().map((c) => c.name);
+  console.log(`[middleware] path=${request.nextUrl.pathname} user=${user?.email ?? 'null'} cookies=[${cookieNames.join(',')}]`);
+
   const { pathname } = request.nextUrl;
 
   // Auth routes — redirect to dashboard if already logged in
-  const authRoutes = ['/login', '/reset-password', '/setup-account'];
+  const authRoutes = ['/login', '/reset-password'];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   if (user && isAuthRoute) {
