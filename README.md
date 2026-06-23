@@ -100,6 +100,7 @@ For identical properties grouped into rental pools, bookings are allocated based
 - Details and visual transparency are displayed in the `/pool-position` section.
 
 ### 3. Document Access & Security
+- **Role-Based Access Control (RBAC):** Users are assigned specific roles (`root`, `admin`, `accountant`, `investor`, `service`, `guest`). RLS policies and Next.js Edge Middleware ensure that `guest` accounts cannot access financial modules, while `accountant` accounts get targeted read/write access for reports.
 - **Sensitive Operations:** Modifying bank accounts or executing bulk PDF downloads (3+) requires verification via a secure re-authentication workflow (`<ReauthDialog>`).
 - **Anonymization:** Guest data displayed on calendars is anonymized (displaying guest country and initials only) to maintain GDPR and privacy compliance for owners, while retaining transaction validity.
 
