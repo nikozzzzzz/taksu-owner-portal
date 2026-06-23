@@ -311,8 +311,9 @@
 - [ ] 8.12 E2E tests (Playwright)
 - [ ] 8.13 Unit tests (calculations)
 - [ ] 8.14 Performance optimization
-- [ ] 8.15 Vercel deployment + domain setup
 - [ ] 8.16 Sentry + Posthog setup
+- [ ] 8.17 Testing Infrastructure (Playwright E2E & Jest Unit)
+- [ ] 8.18 CI/CD Testing integration in deploy script
 
 ### Acceptance Criteria
 
