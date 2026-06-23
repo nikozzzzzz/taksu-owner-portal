@@ -59,5 +59,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // ─── Role-Based Restrictions ───────────────────────────────────────────────
+  
+  const role = user?.app_metadata?.role || 'guest';
+  
+  if (user && role === 'guest' && !isPublicRoute) {
+    // Guests are only allowed to view dashboard (which will show pending state), requests, and settings
+    const allowedGuestPrefixes = ['/dashboard', '/requests', '/settings'];
+    const isAllowedForGuest = allowedGuestPrefixes.some(p => pathname === p || pathname.startsWith(p + '/'));
+    
+    if (!isAllowedForGuest) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

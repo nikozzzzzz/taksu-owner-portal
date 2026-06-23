@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { FileText, Plus, Upload } from 'lucide-react';
-import { requireOwner, getOwnerVilla } from '@/lib/auth/middleware';
+import { requireOwner, getOwnerVilla, getAuthUser } from '@/lib/auth/middleware';
 import { getOwnerDashboard, getLatestBookings, getPoolPosition } from '@/lib/data/dashboard';
 import { CurrentMonthCard } from '@/components/dashboard/current-month-card';
 import { YtdSummary } from '@/components/dashboard/ytd-summary';
@@ -21,6 +21,24 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const owner = await requireOwner();
   const villa = await getOwnerVilla(owner.id);
+
+  const user = await getAuthUser();
+  const role = user?.app_metadata?.role || 'guest';
+
+  if (role === 'guest') {
+    return (
+      <div className="portal-page animate-in flex flex-col items-center justify-center text-center py-20">
+        <h1 className="text-2xl font-bold text-taksu-forest mb-4">Account Pending Approval</h1>
+        <p className="text-taksu-jungle/70 mb-8 max-w-md">
+          Your account has been created, but an administrator has not yet verified your profile or assigned villas. 
+          Please wait for approval. You can contact support via the Requests section.
+        </p>
+        <Button asChild>
+          <Link href="/requests">View Requests</Link>
+        </Button>
+      </div>
+    );
+  }
 
   // Fetch dashboard data in parallel
   const [dashboardData, latestBookings, poolPosition] = await Promise.all([

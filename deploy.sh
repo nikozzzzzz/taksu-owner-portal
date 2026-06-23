@@ -107,10 +107,6 @@ log "Installing Playwright browsers..."
 npx playwright install chromium
 success "Playwright browsers installed"
 
-log "Running E2E tests (pnpm test:e2e)..."
-pnpm test:e2e
-success "E2E tests passed"
-
 log "Restarting PM2 process: $APP_NAME..."
 if pm2 describe "$APP_NAME" &>/dev/null; then
   pm2 restart "$APP_NAME"
@@ -119,6 +115,10 @@ else
 fi
 pm2 save
 success "PM2 restarted"
+
+log "Running E2E tests (pnpm test:e2e)..."
+pnpm test:e2e
+success "E2E tests passed"
 REMOTE
 
 success "Remote steps complete"

@@ -67,11 +67,24 @@ const navItems: NavItem[] = [
 ];
 
 interface PortalSidebarProps {
+  role?: string;
   onClose?: () => void;
 }
 
-export function PortalSidebar({ onClose }: PortalSidebarProps) {
+export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
   const pathname = usePathname();
+
+  // Filter nav items based on role
+  const filteredNavItems = navItems.filter((item) => {
+    if (role === 'guest') {
+      return ['/dashboard', '/requests'].includes(item.href);
+    }
+    if (role === 'accountant') {
+      return ['/dashboard', '/statements', '/analytics', '/tax-documents'].includes(item.href);
+    }
+    // Investor, Admin, Root, Service see everything for now
+    return true;
+  });
 
   return (
     <aside className="flex h-full flex-col bg-taksu-forest text-white">
@@ -100,7 +113,7 @@ export function PortalSidebar({ onClose }: PortalSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
         <ul className="space-y-0.5">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
 
