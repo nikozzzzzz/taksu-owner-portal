@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
     "test:unit": "jest",
+    "test:coverage": "jest --coverage",
     "test:e2e": "playwright test"
   },
   "dependencies": {

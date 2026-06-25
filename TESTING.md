@@ -22,12 +22,17 @@
 # Запуск Unit-тестов
 pnpm test:unit
 
+# Запуск Unit-тестов с генерацией отчета о покрытии (Coverage Map)
+pnpm test:coverage
+
 # Запуск E2E тестов в консольном режиме
 pnpm test:e2e
 
 # Запуск E2E тестов с UI Playwright (для отладки)
 pnpm exec playwright test --ui
 ```
+
+> **Примечание:** После выполнения `pnpm test:coverage` вы найдете сгенерированный HTML-отчет в папке `coverage/lcov-report/index.html`. Вы можете открыть этот файл в браузере для детального просмотра покрытия по каждой строке кода.
 
 > **Примечание:** Для работы E2E тестов локально, необходимо убедиться, что переменная `NEXT_PUBLIC_SUPABASE_URL` в `.env.local` указывает на ваш локальный dev-сервер (`http://localhost:3000`) или на тестовый стенд. Playwright использует эту переменную как `baseURL`.
 
