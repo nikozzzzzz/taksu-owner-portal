@@ -14,7 +14,10 @@ export async function getAuthUser() {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) return null;
+  if (error || !user) {
+    console.error('[getAuthUser] FAILED!', 'error:', error);
+    return null;
+  }
   return user;
 }
 

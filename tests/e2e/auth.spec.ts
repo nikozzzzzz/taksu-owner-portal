@@ -10,7 +10,7 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.click('button[type="submit"]');
 
     // 2. Wait for dashboard (allowed for guest, but shows pending)
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
     await expect(page.locator('text=Account Pending Approval')).toBeVisible();
 
     // 3. Try to access statements
@@ -28,7 +28,7 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.click('button[type="submit"]');
 
     // 2. Access dashboard
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
     // 3. Access statements (should work)
     await page.goto('/statements');

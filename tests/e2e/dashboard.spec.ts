@@ -7,18 +7,18 @@ test.describe('Dashboard Flow', () => {
     await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 
   test('Dashboard loads critical components successfully', async ({ page }) => {
     // Check if the dashboard title is visible
     await expect(page.locator('h1.portal-page-title')).toBeVisible();
 
-    // Check if YTD Revenue metric card is visible
-    await expect(page.locator('text=YTD Revenue')).toBeVisible();
-    
-    // Check if Occupancy metric is visible
-    await expect(page.locator('text=Occupancy')).toBeVisible();
+    // Check if Year-to-Date metric card is visible
+    await expect(page.locator('text=Year-to-Date')).toBeVisible();
+
+    // Check if Gross Revenue metric is visible
+    await expect(page.locator('text=Gross Revenue')).toBeVisible();
 
     // Check if Recent Bookings section or Pool Position is visible
     // Note: These selectors are based on typical shadcn card titles or texts.

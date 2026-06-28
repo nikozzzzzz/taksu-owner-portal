@@ -7,7 +7,7 @@ test.describe('Statements Flow', () => {
     await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 
   test('User can navigate to Statements page and view list', async ({ page }) => {

@@ -39,7 +39,30 @@ export interface Database {
           banking_last_changed_at: string | null;
           banking_last_changed_by_id: string | null;
           preferred_language: string;
-          email_notifications_enabled: boolean;
+          citizenship: string | null;
+          passport_issue_date: string | null;
+          passport_expiry_date: string | null;
+          passport_document_url: string | null;
+          npwp_document_url: string | null;
+          tin_number: string | null;
+          tin_document_url: string | null;
+          registration_address: string | null;
+          actual_address: string | null;
+          phone_whatsapp: string | null;
+          phone_telegram: string | null;
+          dgt1_issue_date: string | null;
+          p3b_treaty_number: string | null;
+          p3b_document_url: string | null;
+          bank_country: string | null;
+          intermediary_bank_details: Json | null;
+          alternative_payment_details: Json | null;
+          crypto_wallet_address: string | null;
+          crypto_network: string | null;
+          statement_email: string | null;
+          report_frequency: Database['public']['Enums']['report_frequency'] | null;
+          statement_language: string | null;
+          booking_notifications_enabled: boolean | null;
+          dgt1_notifications_enabled: boolean | null;
           management_agreement_signed_at: string | null;
           management_agreement_expires_at: string | null;
           management_agreement_document_url: string | null;
@@ -57,7 +80,7 @@ export interface Database {
           id: string;
           internal_code: string;
           display_name: string;
-          villa_type: 'studio' | '1br' | '2br' | '3br';
+          villa_type: 'studio' | '1br' | '2br' | '3br' | '1br_l' | '1br_xl' | '2br_l' | '2br_xl' | '4br';
           bedrooms: number;
           bathrooms: number;
           max_guests: number;
@@ -73,6 +96,36 @@ export interface Database {
           premium_multiplier: number;
           estimated_market_value_usd: number | null;
           estimated_capex_usd: number | null;
+          land_area_sqm: number | null;
+          build_year: number | null;
+          physical_address: string | null;
+          google_maps_url: string | null;
+          photo_urls: Json | null;
+          amenities: Json | null;
+          smart_lock_id: string | null;
+          cadastral_number: string | null;
+          pbg_number: string | null;
+          pbg_document_url: string | null;
+          slf_number: string | null;
+          slf_status: Database['public']['Enums']['slf_status'] | null;
+          slf_issue_date: string | null;
+          slf_expiry_date: string | null;
+          slf_document_url: string | null;
+          pln_id: string | null;
+          pln_tariff: string | null;
+          pdam_id: string | null;
+          water_source: string | null;
+          pricelabs_id: string | null;
+          turno_id: string | null;
+          airbnb_id: string | null;
+          booking_com_id: string | null;
+          wifi_network: string | null;
+          wifi_password: string | null;
+          default_management_fee_rate: number | null;
+          min_payout_threshold_usd: number | null;
+          owner_nights_limit_per_year: number | null;
+          start_float_usd: number | null;
+          payout_type: Database['public']['Enums']['payout_type'] | null;
           status: 'pre_launch' | 'active' | 'maintenance' | 'paused' | 'closed';
           created_at: string;
           updated_at: string;
@@ -85,7 +138,7 @@ export interface Database {
           id: string;
           name: string;
           description: string | null;
-          villa_type: 'studio' | '1br' | '2br' | '3br';
+          villa_type: 'studio' | '1br' | '2br' | '3br' | '1br_l' | '1br_xl' | '2br_l' | '2br_xl' | '4br';
           active: boolean;
           created_at: string;
         };
@@ -323,6 +376,29 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['owner_portal_audit']['Row'], 'id' | 'created_at'>;
         Update: never;
       };
+      villa_agreements: {
+        Row: {
+          id: string;
+          villa_id: string;
+          owner_id: string;
+          hak_sewa_number: string | null;
+          hak_sewa_start_date: string | null;
+          hak_sewa_end_date: string | null;
+          hak_sewa_document_url: string | null;
+          hak_sewa_extension_terms: string | null;
+          annual_rent_amount: number | null;
+          management_agreement_number: string | null;
+          ma_signed_date: string | null;
+          ma_document_url: string | null;
+          ma_term_months: number | null;
+          pbb_tax_amount: number | null;
+          status: 'active' | 'expired' | 'terminated';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['villa_agreements']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['villa_agreements']['Insert']>;
+      };
     };
     Views: {
       v_bookings_anonymized: {
@@ -394,8 +470,12 @@ export interface Database {
         | 'slf_certificate'
         | 'tdup_license'
         | 'other';
-      villa_type: 'studio' | '1br' | '2br' | '3br';
+      villa_type: 'studio' | '1br' | '2br' | '3br' | '1br_l' | '1br_xl' | '2br_l' | '2br_xl' | '4br';
       villa_status: 'pre_launch' | 'active' | 'maintenance' | 'paused' | 'closed';
+      slf_status: 'received' | 'in_progress' | 'not_submitted';
+      payout_type: 'net_profit_share' | 'gross';
+      agreement_status: 'active' | 'expired' | 'terminated';
+      report_frequency: 'monthly' | 'quarterly';
     };
   };
 }

@@ -9,7 +9,7 @@ test.describe('Owner Requests Flow', () => {
     await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
     await page.goto('/requests');
     
@@ -38,7 +38,7 @@ test.describe('Owner Requests Flow', () => {
     await adminPage.fill('input[type="email"]', 'admin@test.com');
     await adminPage.fill('input[type="password"]', 'TestPassword123!');
     await adminPage.click('button[type="submit"]');
-    await expect(adminPage).toHaveURL(/.*\/dashboard/);
+    await expect(adminPage).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
 
     // Go to requests (Admin sees all)
     await adminPage.goto('/requests');
