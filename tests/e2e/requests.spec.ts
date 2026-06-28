@@ -6,7 +6,7 @@ test.describe('Owner Requests Flow', () => {
   test('End-to-End: Investor creates request, Admin approves it', async ({ page, browser }) => {
     // ---- 1. INVESTOR CREATES REQUEST ----
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'investor@test.com');
+    await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/.*\/dashboard/);
@@ -16,14 +16,16 @@ test.describe('Owner Requests Flow', () => {
     // Open the new request modal/page
     await page.click('button:has-text("New Request")');
     
-    // Fill the form
+    // Fill the form (Shadcn Select needs clicks)
+    await page.click('button[role="combobox"]');
+    await page.click('div[role="option"]:has-text("Maintenance Report")');
     await page.fill('input[name="subject"]', subjectStr);
     await page.fill('textarea[name="description"]', 'This is a test description for E2E flow.');
-    await page.click('button[type="submit"]:has-text("Submit")');
+    await page.click('button[type="submit"]:has-text("Submit Request")');
     
-    // Wait for the modal to close and request to appear
-    await expect(page.locator(`text=${subjectStr}`)).toBeVisible();
-    await expect(page.locator(`text=${subjectStr}`).locator('..').locator('text=Pending')).toBeVisible();
+    // Wait for redirect to detail page and subject to appear
+    await expect(page).toHaveURL(/.*\/requests\/.+/);
+    await expect(page.locator(`h1:has-text("${subjectStr}")`)).toBeVisible();
 
     // Sign out
     await page.goto('/login'); // Forces logout or we can click logout

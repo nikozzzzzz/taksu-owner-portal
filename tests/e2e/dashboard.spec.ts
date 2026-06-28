@@ -4,7 +4,7 @@ test.describe('Dashboard Flow', () => {
   // Login before each test
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'investor@test.com');
+    await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/.*\/dashboard/);
@@ -12,7 +12,7 @@ test.describe('Dashboard Flow', () => {
 
   test('Dashboard loads critical components successfully', async ({ page }) => {
     // Check if the dashboard title is visible
-    await expect(page.locator('h1:has-text("Overview")')).toBeVisible();
+    await expect(page.locator('h1.portal-page-title')).toBeVisible();
 
     // Check if YTD Revenue metric card is visible
     await expect(page.locator('text=YTD Revenue')).toBeVisible();

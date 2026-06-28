@@ -4,7 +4,7 @@ test.describe('Statements Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Login as investor for these tests
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'investor@test.com');
+    await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/.*\/dashboard/);
@@ -26,10 +26,10 @@ test.describe('Statements Flow', () => {
   test('User can view Statement Details', async ({ page }) => {
     await page.goto('/statements');
     
-    // Click on the first statement link
-    const viewButton = page.locator('a:has-text("View Details")').first();
-    await expect(viewButton).toBeVisible();
-    await viewButton.click();
+    // Click on the first statement row (it's clickable)
+    const statementRow = page.locator('text=August 2026').first();
+    await expect(statementRow).toBeVisible();
+    await statementRow.click();
 
     // Verify detail page URL and elements
     await expect(page).toHaveURL(/.*\/statements\/.+/);

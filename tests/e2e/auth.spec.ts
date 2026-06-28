@@ -23,7 +23,7 @@ test.describe('Authentication Flow & RBAC', () => {
   test('Investor user can access financial routes but not admin', async ({ page }) => {
     // 1. Login as investor
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'investor@test.com');
+    await page.fill('input[type="email"]', 'test.investor@example.com');
     await page.fill('input[type="password"]', 'TestPassword123!');
     await page.click('button[type="submit"]');
 
@@ -48,6 +48,7 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.click('button[type="submit"]');
 
     // 2. Access Admin Users
+    await expect(page).toHaveURL(/.*\/dashboard/);
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/.*\/admin\/users/);
     await expect(page.locator('text=User Management')).toBeVisible();

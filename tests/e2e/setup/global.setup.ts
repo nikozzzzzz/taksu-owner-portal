@@ -10,7 +10,7 @@ const TEST_USERS = [
     country: 'Indonesia'
   },
   {
-    email: 'investor@test.com',
+    email: 'test.investor@example.com',
     password: 'TestPassword123!',
     role: 'investor',
     name: 'Test Investor',
@@ -41,52 +41,63 @@ async function globalSetup(config: FullConfig) {
   });
   
   for (const u of TEST_USERS) {
-    // 1. Delete user if exists in auth.users
+    // 1. Check if user exists in auth.users
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    let userId = null;
+    
     if (!listError) {
       const existingUser = users.find((user: any) => user.email === u.email);
       if (existingUser) {
-        await supabase.auth.admin.deleteUser(existingUser.id);
+        console.log(`User ${u.email} already exists. Updating password to ensure access.`);
+        await supabase.auth.admin.updateUserById(existingUser.id, { password: u.password });
+        userId = existingUser.id;
       }
     }
     
-    // 2. Create user
-    const { data: authData, error: createError } = await supabase.auth.admin.createUser({
-      email: u.email,
-      password: u.password,
-      email_confirm: true,
-      user_metadata: {
-        role: u.role
-      }
-    });
-    
-    if (createError) {
-      console.error(`Failed to create ${u.email}:`, createError);
-      continue;
-    }
-    
-    if (authData?.user) {
-      const userId = authData.user.id;
-      
-      // 3. Delete existing owner record just in case (cascade should handle it but let's be safe)
-      await supabase.from('owners').delete().eq('email', u.email);
-      
-      // 4. Create owner record
-      const { error: ownerError } = await supabase.from('owners').insert({
-        auth_user_id: userId,
+    if (!userId) {
+      // 2. Create user if not exists
+      const { data: authData, error: createError } = await supabase.auth.admin.createUser({
         email: u.email,
-        full_name: u.name,
-        role: u.role,
-        country_of_residence: u.country,
-        tax_residency_country: u.country,
-        status: 'active'
+        password: u.password,
+        email_confirm: true,
+        user_metadata: { role: u.role }
       });
       
-      if (ownerError) {
-        console.error(`Failed to insert owner for ${u.email}:`, ownerError);
-      } else {
-        console.log(`Successfully created test user: ${u.email} (${u.role})`);
+      if (createError) {
+        console.error(`Failed to create ${u.email}:`, createError);
+        continue;
       }
+      userId = authData?.user?.id;
+    }
+    
+    if (userId) {
+      // 3. Upsert owner record (so we don't destroy seed data completely, just ensure it exists)
+      
+      // Check if it exists first
+      const { data: existingOwner } = await supabase.from('owners').select('id').eq('email', u.email).single();
+      
+      if (existingOwner) {
+         await supabase.from('owners').update({
+          auth_user_id: userId,
+          full_name: u.name,
+          role: u.role,
+          country_of_residence: u.country,
+          tax_residency_country: u.country,
+          status: 'active'
+        }).eq('id', existingOwner.id);
+      } else {
+         await supabase.from('owners').insert({
+          auth_user_id: userId,
+          email: u.email,
+          full_name: u.name,
+          role: u.role,
+          country_of_residence: u.country,
+          tax_residency_country: u.country,
+          status: 'active'
+        });
+      }
+      
+      console.log(`Successfully ensured test user: ${u.email} (${u.role})`);
     }
   }
   
