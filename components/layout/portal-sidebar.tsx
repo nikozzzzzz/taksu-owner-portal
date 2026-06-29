@@ -13,6 +13,8 @@ import {
   FolderOpen,
   Settings,
   ShieldCheck,
+  Building2,
+  Waves,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -155,26 +157,68 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
 
         <ul className="space-y-0.5">
           {isAdmin && (
-            <li>
-              <Link
-                href="/admin/users"
-                onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                  pathname.startsWith('/admin')
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
-                )}
-              >
-                <ShieldCheck
+            <>
+              <li>
+                <Link
+                  href="/admin/users"
+                  onClick={onClose}
                   className={cn(
-                    'h-4 w-4 shrink-0',
-                    pathname.startsWith('/admin') ? 'text-taksu-bamboo' : 'text-white/40'
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith('/admin/users')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
                   )}
-                />
-                <span>Admin Panel</span>
-              </Link>
-            </li>
+                >
+                  <ShieldCheck
+                    className={cn(
+                      'h-4 w-4 shrink-0',
+                      pathname.startsWith('/admin/users') ? 'text-taksu-bamboo' : 'text-white/40'
+                    )}
+                  />
+                  <span>Admin: Users</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/villas"
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith('/admin/villas')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <Building2
+                    className={cn(
+                      'h-4 w-4 shrink-0',
+                      pathname.startsWith('/admin/villas') ? 'text-taksu-bamboo' : 'text-white/40'
+                    )}
+                  />
+                  <span>Admin: Villas</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/pools"
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith('/admin/pools')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <Waves
+                    className={cn(
+                      'h-4 w-4 shrink-0',
+                      pathname.startsWith('/admin/pools') ? 'text-taksu-bamboo' : 'text-white/40'
+                    )}
+                  />
+                  <span>Admin: Pools</span>
+                </Link>
+              </li>
+            </>
           )}
           <li>
             <Link

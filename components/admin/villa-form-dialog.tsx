@@ -24,6 +24,9 @@ interface VillaFormDialogProps {
 export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave }: VillaFormDialogProps) {
   const isEditing = !!villa;
   
+  // Extract first agreement if exists
+  const agreement = villa?.agreements?.[0] || {};
+  
   const [formData, setFormData] = useState({
     id: villa?.id,
     internal_code: villa?.internal_code || '',
@@ -71,6 +74,22 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     turno_id: villa?.turno_id || '',
     airbnb_id: villa?.airbnb_id || '',
     booking_com_id: villa?.booking_com_id || '',
+    hostaway_listing_id: villa?.hostaway_listing_id || '',
+
+    // Arrays (store as comma separated strings for the form)
+    photo_urls: Array.isArray(villa?.photo_urls) ? villa.photo_urls.join(', ') : '',
+    amenities: Array.isArray(villa?.amenities) ? villa.amenities.join(', ') : '',
+
+    // Agreements
+    agreement_id: agreement.id || '',
+    hak_sewa_number: agreement.hak_sewa_number || '',
+    hak_sewa_start_date: agreement.hak_sewa_start_date || '',
+    hak_sewa_end_date: agreement.hak_sewa_end_date || '',
+    annual_rent_amount: agreement.annual_rent_amount || '',
+    management_agreement_number: agreement.management_agreement_number || '',
+    ma_signed_date: agreement.ma_signed_date || '',
+    ma_term_months: agreement.ma_term_months || '',
+    pbb_tax_amount: agreement.pbb_tax_amount || '',
   });
   
   const [loading, setLoading] = useState(false);
@@ -85,6 +104,9 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
       pool_id: formData.pool_id || null,
       slf_issue_date: formData.slf_issue_date || null,
       slf_expiry_date: formData.slf_expiry_date || null,
+      photo_urls: formData.photo_urls ? formData.photo_urls.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      amenities: formData.amenities ? formData.amenities.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      hostaway_listing_id: formData.hostaway_listing_id ? Number(formData.hostaway_listing_id) : null,
     };
     
     await onSave(payload);
@@ -122,11 +144,12 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="pt-4">
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="w-full justify-start border-b border-border bg-transparent p-0">
+            <TabsList className="w-full justify-start border-b border-border bg-transparent p-0 flex-wrap">
               <TabsTrigger value="general" className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle rounded-none bg-transparent">General</TabsTrigger>
               <TabsTrigger value="physical" className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle rounded-none bg-transparent">Physical</TabsTrigger>
               <TabsTrigger value="legal" className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle rounded-none bg-transparent">Legal & Utils</TabsTrigger>
               <TabsTrigger value="financial" className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle rounded-none bg-transparent">Financial & PMS</TabsTrigger>
+              <TabsTrigger value="agreements" className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle rounded-none bg-transparent">Agreements</TabsTrigger>
             </TabsList>
 
             <div className="py-4">
@@ -181,6 +204,14 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                 </div>
                 <InputField label="Physical Address" name="physical_address" />
                 <InputField label="Google Maps URL" name="google_maps_url" type="url" />
+                <div className="space-y-2">
+                  <Label htmlFor="photo_urls">Photo URLs (comma separated)</Label>
+                  <textarea id="photo_urls" name="photo_urls" className="flex min-h-20 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.photo_urls} onChange={handleChange as any} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amenities">Amenities (comma separated)</Label>
+                  <textarea id="amenities" name="amenities" className="flex min-h-20 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.amenities} onChange={handleChange as any} />
+                </div>
               </TabsContent>
 
               <TabsContent value="legal" className="m-0 space-y-4">
@@ -239,6 +270,27 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <InputField label="Turno ID" name="turno_id" />
                   <InputField label="Airbnb ID" name="airbnb_id" />
                   <InputField label="Booking.com ID" name="booking_com_id" />
+                  <InputField label="Hostaway Listing ID" name="hostaway_listing_id" type="number" />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="agreements" className="m-0 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <h4 className="text-sm font-medium mb-2">Hak Sewa Details</h4>
+                  </div>
+                  <InputField label="Hak Sewa Number" name="hak_sewa_number" />
+                  <InputField label="Annual Rent Amount" name="annual_rent_amount" type="number" />
+                  <InputField label="Start Date" name="hak_sewa_start_date" type="date" />
+                  <InputField label="End Date" name="hak_sewa_end_date" type="date" />
+
+                  <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
+                    <h4 className="text-sm font-medium mb-2">Management Agreement</h4>
+                  </div>
+                  <InputField label="Agreement Number" name="management_agreement_number" />
+                  <InputField label="Signed Date" name="ma_signed_date" type="date" />
+                  <InputField label="Term (Months)" name="ma_term_months" type="number" />
+                  <InputField label="PBB Tax Amount" name="pbb_tax_amount" type="number" />
                 </div>
               </TabsContent>
             </div>

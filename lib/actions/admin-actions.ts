@@ -72,15 +72,73 @@ export async function updateUserStatus(userId: string, newStatus: string) {
 
 // ─── Villa Actions ───────────────────────────────────────────────────────────
 
-export async function upsertVilla(villaData: any) {
+import { villaSchema } from '@/lib/validations/villa';
+import { agreementSchema } from '@/lib/validations/agreements';
+
+export async function upsertVilla(payload: any) {
   await requireAdmin();
   const supabase = await createServerSupabaseClient();
 
-  const { error } = await (supabase as any)
-    .from('villas')
-    .upsert(villaData);
+  // Extract agreement data and clean up payload
+  const {
+    agreement_id,
+    hak_sewa_number,
+    hak_sewa_start_date,
+    hak_sewa_end_date,
+    annual_rent_amount,
+    management_agreement_number,
+    ma_signed_date,
+    ma_term_months,
+    pbb_tax_amount,
+    ...villaData
+  } = payload;
 
-  if (error) throw new Error(error.message);
+  // Validate Villa Data
+  const parsedVilla = villaSchema.safeParse(villaData);
+  if (!parsedVilla.success) {
+    throw new Error('Invalid villa data: ' + parsedVilla.error.errors.map(e => e.message).join(', '));
+  }
+
+  // 1. Upsert Villa
+  const { data: savedVilla, error: villaError } = await (supabase as any)
+    .from('villas')
+    .upsert({ id: villaData.id, ...parsedVilla.data })
+    .select('id')
+    .single();
+
+  if (villaError) throw new Error(villaError.message);
+
+  // 2. Upsert Agreement (if owner is assigned and agreement data is provided)
+  // We check if at least one key agreement field is provided to trigger agreement creation
+  if (parsedVilla.data.owner_id && (hak_sewa_number || management_agreement_number || hak_sewa_start_date)) {
+    const agreementPayload = {
+      villa_id: savedVilla.id,
+      owner_id: parsedVilla.data.owner_id,
+      hak_sewa_number: hak_sewa_number || null,
+      hak_sewa_start_date: hak_sewa_start_date || null,
+      hak_sewa_end_date: hak_sewa_end_date || null,
+      annual_rent_amount: annual_rent_amount ? Number(annual_rent_amount) : null,
+      management_agreement_number: management_agreement_number || null,
+      ma_signed_date: ma_signed_date || null,
+      ma_term_months: ma_term_months ? Number(ma_term_months) : null,
+      pbb_tax_amount: pbb_tax_amount ? Number(pbb_tax_amount) : null,
+    };
+
+    const parsedAgreement = agreementSchema.safeParse(agreementPayload);
+    if (!parsedAgreement.success) {
+      throw new Error('Invalid agreement data: ' + parsedAgreement.error.errors.map(e => e.message).join(', '));
+    }
+
+    const { error: agreementError } = await (supabase as any)
+      .from('villa_agreements')
+      .upsert({
+        ...(agreement_id ? { id: agreement_id } : {}),
+        ...parsedAgreement.data
+      });
+
+    if (agreementError) throw new Error(agreementError.message);
+  }
+
   revalidatePath('/admin/villas');
   return { success: true };
 }

@@ -23,7 +23,7 @@ export default async function AdminVillasPage() {
   const [villasRes, ownersRes, poolsRes] = await Promise.all([
     supabase
       .from('villas')
-      .select('*, owner:owners(full_name, email), pool:pools(name)')
+      .select('*, owner:owners(full_name, email), pool:pools(name), agreements:villa_agreements(*)')
       .order('display_name', { ascending: true }),
     supabase
       .from('owners')
