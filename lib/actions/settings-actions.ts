@@ -35,6 +35,8 @@ export async function updateProfileInfo(formData: FormData) {
     actual_address: formData.get('actual_address') as string || null,
     phone_whatsapp: formData.get('phone_whatsapp') as string || null,
     phone_telegram: formData.get('phone_telegram') as string || null,
+    passport_document_url: formData.get('passport_document_url') as string || null,
+    npwp_document_url: formData.get('npwp_document_url') as string || null,
   };
 
   const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();
@@ -55,7 +57,11 @@ export async function updateTaxInfo(formData: FormData) {
 
   const payload = {
     tin_number: formData.get('tin_number') as string || null,
+    tin_document_url: formData.get('tin_document_url') as string || null,
     p3b_treaty_number: formData.get('p3b_treaty_number') as string || null,
+    p3b_document_url: formData.get('p3b_document_url') as string || null,
+    dgt1_issue_date: formData.get('dgt1_issue_date') as string || null,
+    dgt1_valid_until: formData.get('dgt1_valid_until') as string || null,
   };
 
   const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();

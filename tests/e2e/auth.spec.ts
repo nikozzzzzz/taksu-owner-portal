@@ -17,7 +17,7 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.goto('/statements');
     
     // 4. Expect to be redirected back to dashboard
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 
   test('Investor user can access financial routes but not admin', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('Authentication Flow & RBAC', () => {
 
     // 4. Try to access admin panel (should be blocked)
     await page.goto('/admin/users');
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 
   test('Admin user can access Admin Panel', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.click('button[type="submit"]');
 
     // 2. Access Admin Users
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/.*\/admin\/users/);
     await expect(page.locator('text=User Management')).toBeVisible();

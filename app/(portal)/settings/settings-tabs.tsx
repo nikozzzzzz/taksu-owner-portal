@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileForm } from './profile-form';
+import { TaxForm } from './tax-form';
 import { PreferencesForm } from './preferences-form';
 import { BankingForm } from './banking-form';
 
@@ -19,6 +20,12 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
             className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-1 pb-3 pt-2 text-sm font-medium"
           >
             Personal Information
+          </TabsTrigger>
+          <TabsTrigger
+            value="tax"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-1 pb-3 pt-2 text-sm font-medium"
+          >
+            Tax Profile
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
@@ -40,6 +47,13 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
           <div className="max-w-2xl">
             <h2 className="text-lg font-medium text-taksu-forest mb-6">Personal Details</h2>
             <ProfileForm owner={owner} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tax" className="m-0 focus-visible:outline-none">
+          <div className="max-w-2xl">
+            <h2 className="text-lg font-medium text-taksu-forest mb-6">Tax Profile</h2>
+            <TaxForm owner={owner} />
           </div>
         </TabsContent>
 

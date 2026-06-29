@@ -33,8 +33,8 @@ test.describe('Statements Flow', () => {
 
     // Verify detail page URL and elements
     await expect(page).toHaveURL(/.*\/statements\/.+/);
-    await expect(page.locator('text=Gross Revenue')).toBeVisible();
-    await expect(page.locator('text=Net Payout')).toBeVisible();
-    await expect(page.locator('text=Download PDF')).toBeVisible();
+    await expect(page.locator('text=Gross Booking Revenue')).toBeVisible();
+    await expect(page.locator('text=Owner Net Payout')).toBeVisible();
+    await expect(page.locator('text=Statement PDF')).toBeVisible();
   });
 });

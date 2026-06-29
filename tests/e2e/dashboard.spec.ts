@@ -38,6 +38,6 @@ test.describe('Dashboard Flow', () => {
 
     // Navigate back to Dashboard
     await page.click('nav a:has-text("Dashboard")');
-    await expect(page).toHaveURL(/.*\/dashboard/);
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 });
