@@ -48,8 +48,11 @@ async function globalSetup(config: FullConfig) {
     if (!listError) {
       const existingUser = users.find((user: any) => user.email === u.email);
       if (existingUser) {
-        console.log(`User ${u.email} already exists. Updating password to ensure access.`);
-        await supabase.auth.admin.updateUserById(existingUser.id, { password: u.password });
+        console.log(`User ${u.email} already exists. Updating password and app_metadata to ensure access.`);
+        await supabase.auth.admin.updateUserById(existingUser.id, { 
+          password: u.password,
+          app_metadata: { ...existingUser.app_metadata, role: u.role }
+        });
         userId = existingUser.id;
       }
     }
@@ -60,7 +63,8 @@ async function globalSetup(config: FullConfig) {
         email: u.email,
         password: u.password,
         email_confirm: true,
-        user_metadata: { role: u.role }
+        user_metadata: { role: u.role },
+        app_metadata: { role: u.role }
       });
       
       if (createError) {
