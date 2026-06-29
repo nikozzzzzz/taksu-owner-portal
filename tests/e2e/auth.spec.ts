@@ -38,6 +38,10 @@ test.describe('Authentication Flow & RBAC', () => {
     // 4. Try to access admin panel (should be blocked)
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
+
+    // 5. Try to access admin pools (should be blocked)
+    await page.goto('/admin/pools');
+    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
   });
 
   test('Admin user can access Admin Panel', async ({ page }) => {
@@ -52,6 +56,11 @@ test.describe('Authentication Flow & RBAC', () => {
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/.*\/admin\/users/);
     await expect(page.locator('text=User Management')).toBeVisible();
+
+    // 3. Access Admin Pools
+    await page.goto('/admin/pools');
+    await expect(page).toHaveURL(/.*\/admin\/pools/);
+    await expect(page.locator('text=Manage Pools')).toBeVisible();
   });
 
   test('Unauthenticated users are redirected to login', async ({ page }) => {
