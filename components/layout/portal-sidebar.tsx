@@ -219,6 +219,26 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
                   <span>Admin: Pools</span>
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/admin/formulas"
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith('/admin/formulas')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <Calculator
+                    className={cn(
+                      'h-4 w-4 shrink-0',
+                      pathname.startsWith('/admin/formulas') ? 'text-taksu-bamboo' : 'text-white/40'
+                    )}
+                  />
+                  <span>Admin: Formulas</span>
+                </Link>
+              </li>
             </>
           )}
           <li>
