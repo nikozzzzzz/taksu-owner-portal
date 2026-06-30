@@ -18,9 +18,14 @@ export default async function AdminPoolsPage() {
     redirect('/dashboard');
   }
 
-  const { data: pools } = await supabase
+  const { data: pools } = await (supabase as any)
     .from('pools')
-    .select('*')
+    .select('*, yield_formula:yield_formulas(id, name)')
+    .order('name', { ascending: true });
+
+  const { data: formulas } = await (supabase as any)
+    .from('yield_formulas')
+    .select('id, name')
     .order('name', { ascending: true });
 
   return (
@@ -32,7 +37,7 @@ export default async function AdminPoolsPage() {
         </p>
       </div>
 
-      <PoolList pools={pools || []} />
+      <PoolList pools={pools || []} formulas={formulas || []} />
     </div>
   );
 }

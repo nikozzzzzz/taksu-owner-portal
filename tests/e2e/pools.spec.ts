@@ -23,8 +23,8 @@ test.describe('Admin Pools CRUD', () => {
     await expect(page.locator('text=Create Pool')).toBeVisible();
     await page.fill('input[name="name"]', poolName);
     await page.fill('textarea[name="description"]', 'A test pool for E2E tests');
-    await page.selectOption('select[name="villa_type"]', '1_bedroom');
-    await page.selectOption('select[name="yield_formula"]', 'equal_share');
+    await page.selectOption('select[name="villa_type"]', '1br');
+    await page.selectOption('select[id="yield_formula_id"]', { label: 'Equal Share' });
     // Ensure active is checked
     const activeCheckbox = page.locator('button[role="switch"]');
     const isChecked = await activeCheckbox.getAttribute('aria-checked');
@@ -43,7 +43,7 @@ test.describe('Admin Pools CRUD', () => {
     
     await expect(page.locator('text=Edit Pool')).toBeVisible();
     // Change yield formula to revenue_weighted
-    await page.selectOption('select[name="yield_formula"]', 'revenue_weighted');
+    await page.selectOption('select[id="yield_formula_id"]', { label: 'Revenue Weighted' });
     await page.click('button:has-text("Save")');
 
     // Verify edit (the text revenue weighted should be visible in the row)

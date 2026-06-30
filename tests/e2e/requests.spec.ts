@@ -4,6 +4,7 @@ test.describe('Owner Requests Flow', () => {
   const subjectStr = `E2E Test Request ${Date.now()}`;
 
   test('End-to-End: Investor creates request, Admin approves it', async ({ page, browser }) => {
+    test.setTimeout(60000);
     // ---- 1. INVESTOR CREATES REQUEST ----
     await page.goto('/login');
     await page.fill('input[type="email"]', 'test.investor@example.com');

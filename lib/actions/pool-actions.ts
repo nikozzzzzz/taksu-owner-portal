@@ -18,6 +18,7 @@ export async function upsertPool(payload: any) {
 
   const parsed = poolSchema.safeParse(payload);
   if (!parsed.success) {
+    console.error("UPSERT POOL VALIDATION ERROR:", parsed.error.errors);
     throw new Error('Invalid pool data: ' + parsed.error.errors.map(e => e.message).join(', '));
   }
 
@@ -26,7 +27,10 @@ export async function upsertPool(payload: any) {
     ...parsed.data
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("UPSERT POOL DB ERROR:", error);
+    throw new Error(error.message);
+  }
   revalidatePath('/admin/pools');
   return { success: true };
 }

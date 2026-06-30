@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Building2,
   Waves,
+  Calculator,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';

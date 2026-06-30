@@ -21,6 +21,21 @@ interface VillaFormDialogProps {
   onSave: (data: any) => Promise<void>;
 }
 
+const InputField = ({ label, name, type = 'text', value, onChange, ...props }: any) => (
+  <div className="space-y-2">
+    <Label htmlFor={name}>{label}</Label>
+    <input
+      type={type}
+      id={name}
+      name={name}
+      className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-taksu-jungle"
+      value={value === null || value === undefined ? '' : value}
+      onChange={onChange}
+      {...props}
+    />
+  </div>
+);
+
 export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave }: VillaFormDialogProps) {
   const isEditing = !!villa;
   
@@ -121,20 +136,6 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     setFormData(prev => ({ ...prev, [name]: val }));
   };
 
-  const InputField = ({ label, name, type = 'text', ...props }: any) => (
-    <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
-      <input
-        type={type}
-        id={name}
-        name={name}
-        className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-taksu-jungle"
-        value={(formData as any)[name]}
-        onChange={handleChange}
-        {...props}
-      />
-    </div>
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -155,8 +156,8 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
             <div className="py-4">
               <TabsContent value="general" className="m-0 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Internal Code" name="internal_code" required />
-                  <InputField label="Display Name" name="display_name" required />
+                  <InputField label="Internal Code" name="internal_code" required  value={(formData as any).internal_code} onChange={handleChange} />
+                  <InputField label="Display Name" name="display_name" required  value={(formData as any).display_name} onChange={handleChange} />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -183,9 +184,9 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                       {['studio', '1br', '2br', '3br', '1br_l', '1br_xl', '2br_l', '2br_xl', '4br'].map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
                     </select>
                   </div>
-                  <InputField label="Bedrooms" name="bedrooms" type="number" min="0" />
-                  <InputField label="Bathrooms" name="bathrooms" type="number" min="0" />
-                  <InputField label="Max Guests" name="max_guests" type="number" min="1" />
+                  <InputField label="Bedrooms" name="bedrooms" type="number" min="0"  value={(formData as any).bedrooms} onChange={handleChange} />
+                  <InputField label="Bathrooms" name="bathrooms" type="number" min="0"  value={(formData as any).bathrooms} onChange={handleChange} />
+                  <InputField label="Max Guests" name="max_guests" type="number" min="1"  value={(formData as any).max_guests} onChange={handleChange} />
                   <div className="space-y-2">
                     <Label htmlFor="phase">Phase</Label>
                     <select id="phase" name="phase" className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.phase} onChange={handleChange}>
@@ -197,13 +198,13 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
 
               <TabsContent value="physical" className="m-0 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Area (sqm)" name="square_meters" type="number" />
-                  <InputField label="Land Area (sqm)" name="land_area_sqm" type="number" />
-                  <InputField label="Build Year" name="build_year" type="number" />
-                  <InputField label="Smart Lock ID" name="smart_lock_id" />
+                  <InputField label="Area (sqm)" name="square_meters" type="number"  value={(formData as any).square_meters} onChange={handleChange} />
+                  <InputField label="Land Area (sqm)" name="land_area_sqm" type="number"  value={(formData as any).land_area_sqm} onChange={handleChange} />
+                  <InputField label="Build Year" name="build_year" type="number"  value={(formData as any).build_year} onChange={handleChange} />
+                  <InputField label="Smart Lock ID" name="smart_lock_id"  value={(formData as any).smart_lock_id} onChange={handleChange} />
                 </div>
-                <InputField label="Physical Address" name="physical_address" />
-                <InputField label="Google Maps URL" name="google_maps_url" type="url" />
+                <InputField label="Physical Address" name="physical_address"  value={(formData as any).physical_address} onChange={handleChange} />
+                <InputField label="Google Maps URL" name="google_maps_url" type="url"  value={(formData as any).google_maps_url} onChange={handleChange} />
                 <div className="space-y-2">
                   <Label htmlFor="photo_urls">Photo URLs (comma separated)</Label>
                   <textarea id="photo_urls" name="photo_urls" className="flex min-h-20 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.photo_urls} onChange={handleChange as any} />
@@ -216,13 +217,13 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
 
               <TabsContent value="legal" className="m-0 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Cadastral Number" name="cadastral_number" />
-                  <InputField label="PBG Number" name="pbg_number" />
+                  <InputField label="Cadastral Number" name="cadastral_number"  value={(formData as any).cadastral_number} onChange={handleChange} />
+                  <InputField label="PBG Number" name="pbg_number"  value={(formData as any).pbg_number} onChange={handleChange} />
                   
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">SLF Certificate</h4>
                   </div>
-                  <InputField label="SLF Number" name="slf_number" />
+                  <InputField label="SLF Number" name="slf_number"  value={(formData as any).slf_number} onChange={handleChange} />
                   <div className="space-y-2">
                     <Label htmlFor="slf_status">SLF Status</Label>
                     <select id="slf_status" name="slf_status" className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.slf_status} onChange={handleChange}>
@@ -231,18 +232,18 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                       <option value="received">Received</option>
                     </select>
                   </div>
-                  <InputField label="SLF Issue Date" name="slf_issue_date" type="date" />
-                  <InputField label="SLF Expiry Date" name="slf_expiry_date" type="date" />
+                  <InputField label="SLF Issue Date" name="slf_issue_date" type="date"  value={(formData as any).slf_issue_date} onChange={handleChange} />
+                  <InputField label="SLF Expiry Date" name="slf_expiry_date" type="date"  value={(formData as any).slf_expiry_date} onChange={handleChange} />
                   
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">Utilities</h4>
                   </div>
-                  <InputField label="PLN ID (Electricity)" name="pln_id" />
-                  <InputField label="PLN Tariff" name="pln_tariff" />
-                  <InputField label="PDAM ID (Water)" name="pdam_id" />
-                  <InputField label="Alternative Water Source" name="water_source" />
-                  <InputField label="WiFi Network" name="wifi_network" />
-                  <InputField label="WiFi Password" name="wifi_password" />
+                  <InputField label="PLN ID (Electricity)" name="pln_id"  value={(formData as any).pln_id} onChange={handleChange} />
+                  <InputField label="PLN Tariff" name="pln_tariff"  value={(formData as any).pln_tariff} onChange={handleChange} />
+                  <InputField label="PDAM ID (Water)" name="pdam_id"  value={(formData as any).pdam_id} onChange={handleChange} />
+                  <InputField label="Alternative Water Source" name="water_source"  value={(formData as any).water_source} onChange={handleChange} />
+                  <InputField label="WiFi Network" name="wifi_network"  value={(formData as any).wifi_network} onChange={handleChange} />
+                  <InputField label="WiFi Password" name="wifi_password"  value={(formData as any).wifi_password} onChange={handleChange} />
                 </div>
               </TabsContent>
 
@@ -251,7 +252,7 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <div className="space-y-2 col-span-2">
                     <h4 className="text-sm font-medium mb-2">Financial Terms</h4>
                   </div>
-                  <InputField label="Management Fee (%)" name="default_management_fee_rate" type="number" />
+                  <InputField label="Management Fee (%)" name="default_management_fee_rate" type="number"  value={(formData as any).default_management_fee_rate} onChange={handleChange} />
                   <div className="space-y-2">
                     <Label htmlFor="payout_type">Payout Type</Label>
                     <select id="payout_type" name="payout_type" className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.payout_type} onChange={handleChange}>
@@ -259,18 +260,18 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                       <option value="gross">Gross</option>
                     </select>
                   </div>
-                  <InputField label="Min Payout Threshold (USD)" name="min_payout_threshold_usd" type="number" />
-                  <InputField label="Owner Nights Limit/Yr" name="owner_nights_limit_per_year" type="number" />
-                  <InputField label="Start Float (USD)" name="start_float_usd" type="number" />
+                  <InputField label="Min Payout Threshold (USD)" name="min_payout_threshold_usd" type="number"  value={(formData as any).min_payout_threshold_usd} onChange={handleChange} />
+                  <InputField label="Owner Nights Limit/Yr" name="owner_nights_limit_per_year" type="number"  value={(formData as any).owner_nights_limit_per_year} onChange={handleChange} />
+                  <InputField label="Start Float (USD)" name="start_float_usd" type="number"  value={(formData as any).start_float_usd} onChange={handleChange} />
                   
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">PMS Integrations</h4>
                   </div>
-                  <InputField label="PriceLabs ID" name="pricelabs_id" />
-                  <InputField label="Turno ID" name="turno_id" />
-                  <InputField label="Airbnb ID" name="airbnb_id" />
-                  <InputField label="Booking.com ID" name="booking_com_id" />
-                  <InputField label="Hostaway Listing ID" name="hostaway_listing_id" type="number" />
+                  <InputField label="PriceLabs ID" name="pricelabs_id"  value={(formData as any).pricelabs_id} onChange={handleChange} />
+                  <InputField label="Turno ID" name="turno_id"  value={(formData as any).turno_id} onChange={handleChange} />
+                  <InputField label="Airbnb ID" name="airbnb_id"  value={(formData as any).airbnb_id} onChange={handleChange} />
+                  <InputField label="Booking.com ID" name="booking_com_id"  value={(formData as any).booking_com_id} onChange={handleChange} />
+                  <InputField label="Hostaway Listing ID" name="hostaway_listing_id" type="number"  value={(formData as any).hostaway_listing_id} onChange={handleChange} />
                 </div>
               </TabsContent>
 
@@ -279,18 +280,18 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <div className="space-y-2 col-span-2">
                     <h4 className="text-sm font-medium mb-2">Hak Sewa Details</h4>
                   </div>
-                  <InputField label="Hak Sewa Number" name="hak_sewa_number" />
-                  <InputField label="Annual Rent Amount" name="annual_rent_amount" type="number" />
-                  <InputField label="Start Date" name="hak_sewa_start_date" type="date" />
-                  <InputField label="End Date" name="hak_sewa_end_date" type="date" />
+                  <InputField label="Hak Sewa Number" name="hak_sewa_number"  value={(formData as any).hak_sewa_number} onChange={handleChange} />
+                  <InputField label="Annual Rent Amount" name="annual_rent_amount" type="number"  value={(formData as any).annual_rent_amount} onChange={handleChange} />
+                  <InputField label="Start Date" name="hak_sewa_start_date" type="date"  value={(formData as any).hak_sewa_start_date} onChange={handleChange} />
+                  <InputField label="End Date" name="hak_sewa_end_date" type="date"  value={(formData as any).hak_sewa_end_date} onChange={handleChange} />
 
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">Management Agreement</h4>
                   </div>
-                  <InputField label="Agreement Number" name="management_agreement_number" />
-                  <InputField label="Signed Date" name="ma_signed_date" type="date" />
-                  <InputField label="Term (Months)" name="ma_term_months" type="number" />
-                  <InputField label="PBB Tax Amount" name="pbb_tax_amount" type="number" />
+                  <InputField label="Agreement Number" name="management_agreement_number"  value={(formData as any).management_agreement_number} onChange={handleChange} />
+                  <InputField label="Signed Date" name="ma_signed_date" type="date"  value={(formData as any).ma_signed_date} onChange={handleChange} />
+                  <InputField label="Term (Months)" name="ma_term_months" type="number"  value={(formData as any).ma_term_months} onChange={handleChange} />
+                  <InputField label="PBB Tax Amount" name="pbb_tax_amount" type="number"  value={(formData as any).pbb_tax_amount} onChange={handleChange} />
                 </div>
               </TabsContent>
             </div>

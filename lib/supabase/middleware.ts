@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Auth routes — redirect to dashboard if already logged in
-  const authRoutes = ['/login', '/reset-password'];
+  const authRoutes = ['/login', '/signup', '/reset-password'];
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
   if (user && isAuthRoute) {
@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes — redirect to login if not authenticated
-  const publicRoutes = ['/login', '/reset-password', '/setup-account', '/api/auth'];
+  const publicRoutes = ['/login', '/signup', '/reset-password', '/setup-account', '/api/auth'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {

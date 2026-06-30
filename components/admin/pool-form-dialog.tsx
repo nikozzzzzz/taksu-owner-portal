@@ -13,9 +13,10 @@ interface PoolFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (poolData: any) => Promise<void>;
+  formulas: any[];
 }
 
-export function PoolFormDialog({ pool, isOpen, onClose, onSave }: PoolFormDialogProps) {
+export function PoolFormDialog({ pool, isOpen, onClose, onSave, formulas }: PoolFormDialogProps) {
   const isEditing = !!pool;
   
   const [formData, setFormData] = useState({
@@ -24,7 +25,7 @@ export function PoolFormDialog({ pool, isOpen, onClose, onSave }: PoolFormDialog
     description: pool?.description || '',
     villa_type: pool?.villa_type || 'mixed',
     active: pool?.active !== undefined ? pool.active : true,
-    yield_formula: pool?.yield_formula || 'equal_share',
+    yield_formula_id: pool?.yield_formula_id || (formulas.length > 0 ? formulas[0].id : ''),
   });
   
   const [loading, setLoading] = useState(false);
@@ -96,16 +97,16 @@ export function PoolFormDialog({ pool, isOpen, onClose, onSave }: PoolFormDialog
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="yield_formula">Yield Formula</Label>
-              <select 
-                id="yield_formula" 
-                name="yield_formula" 
-                value={formData.yield_formula} 
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm"
+              <Label htmlFor="yield_formula_id">Yield Formula</Label>
+              <select
+                id="yield_formula_id"
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-taksu-jungle focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.yield_formula_id}
+                onChange={(e) => setFormData({ ...formData, yield_formula_id: e.target.value })}
               >
-                <option value="equal_share">Equal Share</option>
-                <option value="revenue_weighted">Revenue Weighted</option>
+                {formulas.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
               </select>
             </div>
           </div>

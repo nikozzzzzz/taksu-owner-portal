@@ -7,7 +7,7 @@ import { upsertPool, deletePool } from '@/lib/actions/pool-actions';
 import { PoolFormDialog } from './pool-form-dialog';
 import Link from 'next/link';
 
-export function PoolList({ pools }: { pools: any[] }) {
+export function PoolList({ pools, formulas }: { pools: any[], formulas: any[] }) {
   const [editingPool, setEditingPool] = useState<any | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -69,7 +69,7 @@ export function PoolList({ pools }: { pools: any[] }) {
                   <td className="px-4 py-3 text-gray-600">{pool.villa_type}</td>
                   <td className="px-4 py-3 text-gray-600">
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                      {pool.yield_formula?.replace('_', ' ') || 'Unknown'}
+                      {pool.yield_formula?.name || 'Unknown'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -108,6 +108,7 @@ export function PoolList({ pools }: { pools: any[] }) {
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSave}
+          formulas={formulas}
         />
       )}
     </div>
