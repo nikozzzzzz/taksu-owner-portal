@@ -117,7 +117,7 @@ export function Board({ project, initialColumns, initialTasks, owners }: any) {
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
-                      {...provided.droppableProps}
+                      {...(provided.droppableProps as any)}
                       className={`p-3 pt-0 flex-1 overflow-y-auto min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-gray-200/50' : ''}`}
                     >
                       {colTasks.map((task: any, index: number) => (
@@ -125,8 +125,8 @@ export function Board({ project, initialColumns, initialTasks, owners }: any) {
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
+                              {...(provided.draggableProps as any)}
+                              {...(provided.dragHandleProps as any)}
                               onClick={() => setSelectedTask(task)}
                               className={`bg-white p-3 rounded-lg shadow-sm border border-gray-200 mb-3 group hover:border-taksu-bamboo transition-all cursor-pointer ${
                                 snapshot.isDragging ? 'shadow-lg ring-2 ring-taksu-jungle/20' : ''

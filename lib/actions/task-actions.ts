@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function getProjects() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('task_projects')
     .select('*, created_by:owners(full_name)')
@@ -16,7 +16,7 @@ export async function getProjects() {
 export async function createProject(formData: FormData) {
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data: { user } } = await supabase.auth.getUser();
 
   const { error } = await supabase
@@ -25,21 +25,21 @@ export async function createProject(formData: FormData) {
       name,
       description,
       created_by: user?.id,
-    });
+    } as any);
   
   if (error) throw new Error(error.message);
   revalidatePath('/tasks');
 }
 
 export async function deleteProject(id: string) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { error } = await supabase.from('task_projects').delete().eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/tasks');
 }
 
 export async function getBoardData(projectId: string) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   
   const [columnsRes, tasksRes] = await Promise.all([
     supabase.from('task_columns').select('*').eq('project_id', projectId).order('position', { ascending: true }),
@@ -53,10 +53,10 @@ export async function getBoardData(projectId: string) {
 }
 
 export async function createColumn(projectId: string, title: string, position: number) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('task_columns')
-    .insert({ project_id: projectId, title, position })
+    .insert({ project_id: projectId, title, position } as any)
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -65,14 +65,14 @@ export async function createColumn(projectId: string, title: string, position: n
 }
 
 export async function createTask(taskData: any) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('tasks')
     .insert({
       ...taskData,
       created_by: user?.id,
-    })
+    } as any)
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -81,22 +81,22 @@ export async function createTask(taskData: any) {
 }
 
 export async function updateTask(taskId: string, projectId: string, updates: any) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { error } = await supabase
     .from('tasks')
-    .update(updates)
+    .update(updates as any)
     .eq('id', taskId);
   if (error) throw new Error(error.message);
   revalidatePath(`/tasks/${projectId}`);
 }
 
 export async function moveTask(taskId: string, projectId: string, newColumnId: string, newPosition: number, otherTaskUpdates: { id: string, position: number }[]) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   
   // First update the moved task
   const { error: moveError } = await supabase
     .from('tasks')
-    .update({ column_id: newColumnId, position: newPosition })
+    .update({ column_id: newColumnId, position: newPosition } as any)
     .eq('id', taskId);
   if (moveError) throw new Error(moveError.message);
 
@@ -105,7 +105,7 @@ export async function moveTask(taskId: string, projectId: string, newColumnId: s
     // Supabase JS doesn't have bulk update natively with multiple different values,
     // so we can loop since it's a small number usually.
     for (const update of otherTaskUpdates) {
-      await supabase.from('tasks').update({ position: update.position }).eq('id', update.id);
+      await supabase.from('tasks').update({ position: update.position } as any).eq('id', update.id);
     }
   }
 
@@ -113,7 +113,7 @@ export async function moveTask(taskId: string, projectId: string, newColumnId: s
 }
 
 export async function getTaskComments(taskId: string) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('task_comments')
     .select('*, author:owners(full_name)')
@@ -124,7 +124,7 @@ export async function getTaskComments(taskId: string) {
 }
 
 export async function addComment(taskId: string, content: string) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   
@@ -134,7 +134,7 @@ export async function addComment(taskId: string, content: string) {
       task_id: taskId,
       user_id: user.id,
       content
-    })
+    } as any)
     .select('*, author:owners(full_name)')
     .single();
   
@@ -143,7 +143,7 @@ export async function addComment(taskId: string, content: string) {
 }
 
 export async function getOwnersForSelect() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = (await createServerSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('owners')
     .select('id, full_name, role')

@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getBoardData, getOwnersForSelect } from '@/lib/actions/task-actions';
 import { Board } from '@/components/tasks/board';
 import Link from 'next/link';
-import { ArrowLeft, LayoutKanban } from 'lucide-react';
+import { ArrowLeft, Kanban } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Kanban Board | Taksu Owner Portal',
@@ -22,7 +22,8 @@ export default async function KanbanPage({ params }: { params: Promise<{ project
 
   const { projectId } = await params;
   const supabase = await createServerSupabaseClient();
-  const { data: project } = await supabase.from('task_projects').select('*').eq('id', projectId).single();
+  const { data } = await supabase.from('task_projects').select('*').eq('id', projectId).single();
+  const project = data as any;
   if (!project) redirect('/tasks');
 
   const { columns, tasks } = await getBoardData(projectId);
@@ -35,7 +36,7 @@ export default async function KanbanPage({ params }: { params: Promise<{ project
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="bg-taksu-bamboo/10 p-2 rounded-lg text-taksu-jungle shrink-0">
-          <LayoutKanban className="h-6 w-6" />
+          <Kanban className="h-6 w-6" />
         </div>
         <div>
           <h1 className="text-2xl font-serif font-semibold text-gray-900 leading-tight">{project.name}</h1>

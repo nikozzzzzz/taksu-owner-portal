@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createProject, deleteProject } from '@/lib/actions/task-actions';
-import { Plus, Trash2, LayoutKanban, ClipboardList } from 'lucide-react';
+import { Plus, Trash2, Kanban, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button'; // Assuming these exist, if not I will just use standard html
 import { format } from 'date-fns';
 
@@ -65,7 +65,7 @@ export function ProjectList({ initialProjects }: { initialProjects: any[] }) {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-taksu-bamboo/10 p-2 rounded-lg text-taksu-jungle">
-                    <LayoutKanban className="h-6 w-6" />
+                    <Kanban className="h-6 w-6" />
                   </div>
                   <h3 className="font-medium text-gray-900 text-lg group-hover:text-taksu-jungle transition-colors">
                     {project.name}
