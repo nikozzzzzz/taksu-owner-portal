@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getCurrentOwner } from '@/lib/auth/middleware';
 
 export async function getProjects() {
   const supabase = (await createServerSupabaseClient()) as any;
@@ -17,14 +18,14 @@ export async function createProject(formData: FormData) {
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const supabase = (await createServerSupabaseClient()) as any;
-  const { data: { user } } = await supabase.auth.getUser();
+  const owner = await getCurrentOwner();
 
   const { error } = await supabase
     .from('task_projects')
     .insert({
       name,
       description,
-      created_by: user?.id,
+      created_by: owner?.id,
     } as any);
   
   if (error) throw new Error(error.message);
@@ -66,12 +67,12 @@ export async function createColumn(projectId: string, title: string, position: n
 
 export async function createTask(taskData: any) {
   const supabase = (await createServerSupabaseClient()) as any;
-  const { data: { user } } = await supabase.auth.getUser();
+  const owner = await getCurrentOwner();
   const { data, error } = await supabase
     .from('tasks')
     .insert({
       ...taskData,
-      created_by: user?.id,
+      created_by: owner?.id,
     } as any)
     .select()
     .single();
@@ -125,14 +126,14 @@ export async function getTaskComments(taskId: string) {
 
 export async function addComment(taskId: string, content: string) {
   const supabase = (await createServerSupabaseClient()) as any;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const owner = await getCurrentOwner();
+  if (!owner) throw new Error("Unauthorized");
   
   const { data, error } = await supabase
     .from('task_comments')
     .insert({
       task_id: taskId,
-      user_id: user.id,
+      user_id: owner.id,
       content
     } as any)
     .select('*, author:owners(full_name)')

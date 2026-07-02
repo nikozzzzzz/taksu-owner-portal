@@ -13,10 +13,13 @@ export function ProjectList({ initialProjects }: { initialProjects: any[] }) {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    await createProject(formData);
-    // Real app would fetch the updated list or rely on server action revalidation
-    window.location.reload(); 
+    try {
+      const formData = new FormData(e.currentTarget);
+      await createProject(formData);
+      window.location.reload(); 
+    } catch (err: any) {
+      alert(`Error creating project: ${err.message}`);
+    }
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {

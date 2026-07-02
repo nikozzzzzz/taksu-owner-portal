@@ -17,7 +17,7 @@ test.describe('Tasks Board (Kanban)', () => {
 
     // 1. Go to Tasks
     await page.goto('/tasks');
-    await expect(page.locator('text=Task Boards')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Task Boards', level: 1 })).toBeVisible();
 
     // 2. Create Project
     await page.click('button:has-text("New Board")');

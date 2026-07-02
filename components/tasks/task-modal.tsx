@@ -43,23 +43,23 @@ export function TaskModal({ task, project, columns, owners, onClose, onUpdate }:
   const handleTitleBlur = async () => {
     setIsEditingTitle(false);
     if (title !== task.title) {
+      onUpdate({ id: task.id, title });
       await updateTask(task.id, project.id, { title });
-      onUpdate({ title });
     }
   };
 
   const saveDescription = async () => {
     setIsEditingDesc(false);
     if (descriptionHtml !== task.description) {
+      onUpdate({ id: task.id, description: descriptionHtml });
       await updateTask(task.id, project.id, { description: descriptionHtml });
-      onUpdate({ description: descriptionHtml });
     }
   };
 
   const handlePropertyChange = async (prop: string, value: any) => {
     const val = value === '' ? null : value;
+    onUpdate({ id: task.id, [prop]: val });
     await updateTask(task.id, project.id, { [prop]: val });
-    onUpdate({ [prop]: val });
   };
 
   const handleAddComment = async (e: React.FormEvent) => {
