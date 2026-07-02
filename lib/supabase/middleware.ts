@@ -75,6 +75,17 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Accountant can only access certain routes
+  if (user && role === 'accountant' && !isPublicRoute) {
+    const allowedAccountantPrefixes = ['/dashboard', '/statements', '/analytics', '/tax-documents', '/settings', '/accounting'];
+    const isAllowedForAccountant = allowedAccountantPrefixes.some(p => pathname === p || pathname.startsWith(p + '/'));
+    if (!isAllowedForAccountant) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Admin route restrictions
   if (user && pathname.startsWith('/admin') && !['admin', 'root'].includes(role)) {
     const url = request.nextUrl.clone();

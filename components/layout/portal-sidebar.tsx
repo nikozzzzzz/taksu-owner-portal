@@ -16,6 +16,7 @@ import {
   Building2,
   Waves,
   Calculator,
+  BookOpen,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -91,6 +92,7 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
   });
 
   const isAdmin = ['admin', 'root'].includes(role);
+  const isAccountingRole = ['admin', 'root', 'accountant'].includes(role);
 
   return (
     <aside className="flex h-full flex-col bg-taksu-forest text-white">
@@ -157,6 +159,28 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
         <div className="my-4 border-t border-white/10" />
 
         <ul className="space-y-0.5">
+          {isAccountingRole && (
+            <li>
+              <Link
+                href="/accounting"
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                  pathname.startsWith('/accounting')
+                    ? 'bg-white/10 text-white'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <BookOpen
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    pathname.startsWith('/accounting') ? 'text-taksu-bamboo' : 'text-white/40'
+                  )}
+                />
+                <span>Accounting</span>
+              </Link>
+            </li>
+          )}
           {isAdmin && (
             <>
               <li>

@@ -60,6 +60,9 @@ export const villaSchema = z.object({
   owner_nights_limit_per_year: z.number().int().min(0).default(21),
   start_float_usd: z.number().min(0).default(0),
   payout_type: z.enum(['net_profit_share', 'gross']).default('net_profit_share'),
+  individual_deviations: z.string().optional().nullable(),
+  payout_day: z.number().int().min(1).max(31).default(15),
+  owner_holds: z.string().optional().nullable(),
 
   status: z.enum(['pre_launch', 'active', 'maintenance', 'paused', 'closed']).default('pre_launch'),
 }).superRefine((data, ctx) => {

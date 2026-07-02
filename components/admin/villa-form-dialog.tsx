@@ -85,6 +85,9 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     owner_nights_limit_per_year: villa?.owner_nights_limit_per_year || 21,
     start_float_usd: villa?.start_float_usd || 0,
     payout_type: villa?.payout_type || 'net_profit_share',
+    individual_deviations: villa?.individual_deviations || '',
+    payout_day: villa?.payout_day || 15,
+    owner_holds: villa?.owner_holds || '',
     pricelabs_id: villa?.pricelabs_id || '',
     turno_id: villa?.turno_id || '',
     airbnb_id: villa?.airbnb_id || '',
@@ -263,6 +266,17 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <InputField label="Min Payout Threshold (USD)" name="min_payout_threshold_usd" type="number"  value={(formData as any).min_payout_threshold_usd} onChange={handleChange} />
                   <InputField label="Owner Nights Limit/Yr" name="owner_nights_limit_per_year" type="number"  value={(formData as any).owner_nights_limit_per_year} onChange={handleChange} />
                   <InputField label="Start Float (USD)" name="start_float_usd" type="number"  value={(formData as any).start_float_usd} onChange={handleChange} />
+                  <InputField label="Payout Day" name="payout_day" type="number" min="1" max="31" value={(formData as any).payout_day} onChange={handleChange} />
+                  
+                  <div className="space-y-2 col-span-2 mt-2">
+                    <Label htmlFor="individual_deviations">Individual Deviations (Notes)</Label>
+                    <textarea id="individual_deviations" name="individual_deviations" className="flex min-h-16 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.individual_deviations} onChange={handleChange as any} />
+                  </div>
+                  
+                  <div className="space-y-2 col-span-2 mt-2">
+                    <Label htmlFor="owner_holds">Owner Holds (Blocked Dates/Notes)</Label>
+                    <textarea id="owner_holds" name="owner_holds" className="flex min-h-16 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm" value={formData.owner_holds} onChange={handleChange as any} />
+                  </div>
                   
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">PMS Integrations</h4>

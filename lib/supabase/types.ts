@@ -126,6 +126,9 @@ export interface Database {
           owner_nights_limit_per_year: number | null;
           start_float_usd: number | null;
           payout_type: Database['public']['Enums']['payout_type'] | null;
+          individual_deviations: string | null;
+          payout_day: number | null;
+          owner_holds: string | null;
           status: 'pre_launch' | 'active' | 'maintenance' | 'paused' | 'closed';
           created_at: string;
           updated_at: string;

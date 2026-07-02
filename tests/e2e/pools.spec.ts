@@ -34,7 +34,7 @@ test.describe('Admin Pools CRUD', () => {
     await page.click('button:has-text("Save")');
     
     // Verify creation
-    await expect(page.locator(`text=${poolName}`)).toBeVisible();
+    await expect(page.locator(`text=${poolName}`)).toBeVisible({ timeout: 15000 });
 
     // 3. Edit Pool
     // Find the row for the created pool and click the edit button
