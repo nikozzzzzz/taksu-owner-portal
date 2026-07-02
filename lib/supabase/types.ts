@@ -262,6 +262,125 @@ export interface Database {
         >;
         Update: Partial<Database['public']['Tables']['operating_expenses']['Insert']>;
       };
+      task_projects: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+      }
+      task_columns: {
+        Row: {
+          id: string
+          project_id: string
+          title: string
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          title: string
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          title?: string
+          position?: number
+          created_at?: string
+        }
+      }
+      tasks: {
+        Row: {
+          id: string
+          project_id: string
+          column_id: string
+          title: string
+          description: string | null
+          created_by: string | null
+          assigned_to: string | null
+          investor_id: string | null
+          start_date: string | null
+          end_date: string | null
+          deadline: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          column_id: string
+          title: string
+          description?: string | null
+          created_by?: string | null
+          assigned_to?: string | null
+          investor_id?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          deadline?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          column_id?: string
+          title?: string
+          description?: string | null
+          created_by?: string | null
+          assigned_to?: string | null
+          investor_id?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          deadline?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      task_comments: {
+        Row: {
+          id: string
+          task_id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+        }
+      }
       owner_requests: {
         Row: {
           id: string;

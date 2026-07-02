@@ -18,6 +18,7 @@ import {
   Calculator,
   BookOpen,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -69,6 +70,11 @@ const navItems: NavItem[] = [
     label: 'Documents',
     icon: FolderOpen,
   },
+  {
+    href: '/tasks',
+    label: 'Kanban / Tasks',
+    icon: ClipboardList,
+  },
 ];
 
 interface PortalSidebarProps {
@@ -85,7 +91,7 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
       return ['/dashboard', '/requests'].includes(item.href);
     }
     if (role === 'accountant') {
-      return ['/dashboard', '/statements', '/analytics', '/tax-documents'].includes(item.href);
+      return ['/dashboard', '/statements', '/analytics', '/tax-documents', '/tasks'].includes(item.href);
     }
     // Investor, Admin, Root, Service see everything for now
     return true;
