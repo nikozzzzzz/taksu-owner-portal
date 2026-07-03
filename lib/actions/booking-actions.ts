@@ -24,7 +24,8 @@ export async function createBooking(villaId: string, data: any) {
     guest_country: data.guest_country || '',
     total_paid_by_guest_usd: data.net_to_villa_usd || 0,
     status: 'confirmed',
-    payout_status: 'pending' // Added for accounting flow
+    payout_status: 'pending', // Added for accounting flow
+    booked_at: new Date().toISOString()
   };
   
   const { error } = await supabase.from('bookings').insert(payload as any);
