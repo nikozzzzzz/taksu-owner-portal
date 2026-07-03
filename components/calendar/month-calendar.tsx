@@ -10,15 +10,17 @@ import { BookingModal } from './booking-modal';
 import { ChannelLegend } from './channel-legend';
 
 interface MonthCalendarProps {
+  villaId: string;
   initialBookings: CalendarBooking[];
   fetchBookings: (start: string, end: string) => Promise<CalendarBooking[]>;
 }
 
-export function MonthCalendar({ initialBookings, fetchBookings }: MonthCalendarProps) {
+export function MonthCalendar({ villaId, initialBookings, fetchBookings }: MonthCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date()); // Actually in a real app you'd likely default to the current month or the latest statement month. For now, new Date() is fine.
   const [bookings, setBookings] = useState<CalendarBooking[]>(initialBookings);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
+  const [newBookingDate, setNewBookingDate] = useState<Date | null>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -93,9 +95,13 @@ export function MonthCalendar({ initialBookings, fetchBookings }: MonthCalendarP
           return (
             <div 
               key={day.toISOString()} 
-              className={`min-h-[100px] bg-white p-1 relative ${!isCurrentMonth ? 'opacity-40' : ''}`}
+              className={`min-h-[100px] bg-white p-1 relative group ${!isCurrentMonth ? 'opacity-40' : ''}`}
             >
-              <div className="flex justify-between items-start">
+              <div 
+                className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0" 
+                onClick={() => setNewBookingDate(day)}
+              />
+              <div className="flex justify-between items-start relative z-10 pointer-events-none">
                 <span className={`text-sm font-medium p-1.5 rounded-full w-7 h-7 flex items-center justify-center ${isToday ? 'bg-taksu-terracotta text-white' : 'text-taksu-forest'}`}>
                   {format(day, 'd')}
                 </span>
@@ -112,7 +118,7 @@ export function MonthCalendar({ initialBookings, fetchBookings }: MonthCalendarP
                   const isEndVisual = isSameDay(day, dayBeforeEnd);
 
                   return (
-                    <div key={booking.id} className="relative h-6" style={{ top: idx * 28 }}>
+                    <div key={booking.id} className="relative h-6 z-20" style={{ top: idx * 28 }}>
                       <BookingEvent 
                         booking={booking} 
                         isStart={isStart} 
@@ -131,9 +137,17 @@ export function MonthCalendar({ initialBookings, fetchBookings }: MonthCalendarP
       <ChannelLegend />
 
       <BookingModal 
+        villaId={villaId}
         booking={selectedBooking} 
-        open={!!selectedBooking} 
-        onOpenChange={(open) => !open && setSelectedBooking(null)} 
+        selectedDate={newBookingDate}
+        open={!!selectedBooking || !!newBookingDate} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedBooking(null);
+            setNewBookingDate(null);
+          }
+        }}
+        onSave={() => loadBookings(currentDate)}
       />
     </div>
   );

@@ -3,9 +3,11 @@ import { requireOwner, getAuthUser } from '@/lib/auth/middleware';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { TransactionList } from '@/components/accounting/transaction-list';
+import { PayoutList } from '@/components/accounting/payout-list';
 import { CategoryList } from '@/components/accounting/category-list';
 import { InvoiceList } from '@/components/accounting/invoice-list';
 import { getTransactions, getCategories, getInvoices } from '@/lib/actions/accounting-actions';
+import { getPendingPayouts } from '@/lib/actions/booking-actions';
 import Link from 'next/link';
 import { ChevronRight, BookOpen, Building2, Briefcase } from 'lucide-react';
 
@@ -72,18 +74,21 @@ export default async function AccountingEntityPage({ params, searchParams }: Pag
     entitySubtitle = v.internal_code || '';
   }
 
-  const [transactions, categories, invoices, staffListRes] = await Promise.all([
+  const [transactions, categories, invoices, staffListRes, pendingPayoutsRes] = await Promise.all([
     getTransactions(filters).catch(() => []),
     getCategories().catch(() => []),
     getInvoices({ entity_type: entityType, villa_id: entityType === 'villa' ? entityId : undefined }).catch(() => []),
     supabase.from('owners').select('id, full_name, role').in('role', ['admin', 'root', 'service', 'accountant']),
+    tab === 'payouts' && entityType === 'villa' ? getPendingPayouts(entityId).catch(() => []) : Promise.resolve([]),
   ]);
 
   const staffList = staffListRes.data || [];
+  const pendingPayouts = pendingPayoutsRes;
 
   const TABS = [
     { id: 'transactions', label: 'Transactions' },
     { id: 'invoices', label: 'Invoices' },
+    ...(entityType === 'villa' ? [{ id: 'payouts', label: 'Expected Payouts' }] : []),
     { id: 'categories', label: 'Categories' },
   ];
 
@@ -156,6 +161,9 @@ export default async function AccountingEntityPage({ params, searchParams }: Pag
         )}
         {tab === 'categories' && (
           <CategoryList categories={categories} />
+        )}
+        {tab === 'payouts' && entityType === 'villa' && (
+          <PayoutList payouts={pendingPayouts} villaId={entityId} />
         )}
       </div>
     </div>
