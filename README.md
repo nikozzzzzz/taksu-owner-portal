@@ -104,6 +104,19 @@ For identical properties grouped into rental pools, bookings are allocated based
 - **Sensitive Operations:** Modifying bank accounts or executing bulk PDF downloads (3+) requires verification via a secure re-authentication workflow (`<ReauthDialog>`).
 - **Anonymization:** Guest data displayed on calendars is anonymized (displaying guest country and initials only) to maintain GDPR and privacy compliance for owners, while retaining transaction validity.
 
+### 4. Two-Way PMS Integration (Beds24)
+- Direct integration with Beds24 via API v2 for two-way synchronization of bookings.
+- Webhook endpoints to receive real-time reservation updates from all OTAs (Airbnb, Booking.com, etc.).
+- Owner Portal calendar directly reflects real-time availability and allows manual overrides that sync back out to the channel manager.
+
+### 5. Accounting & Expected Payouts
+- System captures future bookings as 'Pending Payouts' indicating expected revenue.
+- Administrators can reconcile actual received bank payments against pending payouts, automatically splitting them into Net Income and OTA Commissions for accurate financial statements.
+
+### 6. Task Management (Kanban)
+- Internal task tracking system for the Taksu Management team.
+- Secured via RBAC, featuring drag-and-drop mechanics to optimize property management workflows.
+
 ---
 
 ## 🛠️ Local Development & Setup

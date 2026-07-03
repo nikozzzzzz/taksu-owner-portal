@@ -227,6 +227,22 @@
 
 *Тесты будут написаны на Playwright и запускаться локально перед коммитом и на сервере в `deploy.sh` перед рестартом сервисов.*
 
+## Phase 10: Accounting & PMS Integration 
+**Status:** ✅ Completed
+**Goal:** Implement full expected payout flow and two-way integration with Beds24.
+- [x] Create Accounting Module with sub-tabs (Statements, Expenses, Invoices, Payouts).
+- [x] Allow Administrators to track pending payouts from Aggregators and generate Invoices dynamically upon receipt.
+- [x] Implement Booking Calendar with yield logic and full editing capabilities.
+- [x] Implement Beds24 API v2 Integration (Webhooks for inbound, API calls for outbound).
+- [x] Create Admin UI for Beds24 connection via Invite Code.
+
+## Phase 11: Task Management (Kanban)
+**Status:** ✅ Completed
+**Goal:** Internal task management system for administrators and accountants.
+- [x] Create Kanban board with drag-and-drop functionality.
+- [x] Allow creating columns, cards, and assigning users.
+- [x] Secure via RBAC (investors have no access).
+
 ---
 
 ## Changelog
@@ -238,4 +254,8 @@
 | 2026-06-22 | Phase 7 | ✅ Завершены Owner Requests Lifecycle. Добавлено управление статусами и комментариями. |
 | 2026-06-22 | Infrastructure | ✅ Переход с облачного Supabase на локальный Self-Hosted Docker стек на тестовом сервере (192.168.101.122). Обновлён скрипт деплоя. Создан DEPLOYMENT.md. |
 | 2026-06-23 | Auth / Security | ✅ Внедрена ролевая модель (RBAC). Созданы роли `root`, `admin`, `accountant`, `service`, `investor`, `guest`. Добавлена защита на уровне БД (RLS) и Frontend Middleware. |
+| 2026-06-30 | Phase 11 | ✅ Завершено создание Kanban доски (Tasks) для администраторов. |
+| 2026-07-02 | Phase 10 | ✅ Разработан модуль Accounting, позволяющий конвертировать ожидаемые выплаты (Pending Payouts) в Invoices. |
+| 2026-07-02 | Phase 10 | ✅ Интерактивный Booking Calendar. |
+| 2026-07-03 | Phase 10 | ✅ Интеграция Beds24 (двусторонняя синхронизация через вебхуки и REST API) завершена. |
 
