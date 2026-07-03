@@ -24,11 +24,11 @@ export function BookingEvent({ booking, isStart, isEnd, onClick }: BookingEventP
         onClick(booking);
       }}
       className={`absolute inset-y-1 left-0 right-0 z-10 cursor-pointer overflow-hidden text-xs flex items-center px-2 transition-transform hover:scale-105 ${colors.bg} ${colors.text} border-y ${colors.border} ${roundedClass} ${isStart ? 'border-l' : ''} ${isEnd ? 'border-r' : ''}`}
-      title={`${booking.guest_initials} (${booking.channel})`}
+      title={`${booking.guest_full_name} (${booking.channel})`}
     >
       {isStart && (
         <span className="font-medium truncate block w-full">
-          {booking.guest_initials}
+          {booking.guest_full_name}
         </span>
       )}
     </div>

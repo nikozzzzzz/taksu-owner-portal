@@ -37,7 +37,7 @@ export function BookingModal({ villaId, booking, selectedDate, open, onOpenChang
       setFormData({
         check_in_date: booking.check_in_date,
         check_out_date: booking.check_out_date,
-        guest_full_name: (booking as any).guest_full_name || booking.guest_initials,
+        guest_full_name: (booking as any).guest_full_name || booking.guest_full_name,
         guest_country: booking.guest_country || '',
         net_to_villa_usd: booking.net_to_villa_usd,
         channel: booking.channel
