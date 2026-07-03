@@ -19,6 +19,7 @@ import {
   BookOpen,
   X,
   ClipboardList,
+  Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -267,6 +268,26 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
                     )}
                   />
                   <span>Admin: Formulas</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/integrations/beds24"
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith('/admin/integrations')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <Link2
+                    className={cn(
+                      'h-4 w-4 shrink-0',
+                      pathname.startsWith('/admin/integrations') ? 'text-taksu-bamboo' : 'text-white/40'
+                    )}
+                  />
+                  <span>Admin: Integrations</span>
                 </Link>
               </li>
             </>
