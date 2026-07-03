@@ -118,7 +118,7 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
                   const isEndVisual = isSameDay(day, dayBeforeEnd);
 
                   return (
-                    <div key={booking.id} className="relative h-6 z-20" style={{ top: idx * 28 }}>
+                    <div key={booking.id} className="relative h-6 z-20">
                       <BookingEvent 
                         booking={booking} 
                         isStart={isStart} 
