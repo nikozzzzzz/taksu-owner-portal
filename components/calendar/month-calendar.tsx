@@ -95,13 +95,14 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
           return (
             <div 
               key={day.toISOString()} 
-              className={`min-h-[100px] bg-white p-1 relative group ${!isCurrentMonth ? 'opacity-40' : ''}`}
+              className={`min-h-[100px] bg-white p-1 relative group cursor-pointer ${!isCurrentMonth ? 'opacity-40' : ''}`}
+              onClick={() => setNewBookingDate(day)}
             >
+              {/* Visual hover overlay — purely decorative, no pointer events */}
               <div 
-                className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0 pointer-events-none group-hover:pointer-events-auto" 
-                onClick={() => setNewBookingDate(day)}
+                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0 pointer-events-none" 
               />
-              <div className="flex justify-between items-start relative z-10 pointer-events-none">
+              <div className="flex justify-between items-start relative z-10">
                 <span className={`text-sm font-medium p-1.5 rounded-full w-7 h-7 flex items-center justify-center ${isToday ? 'bg-taksu-terracotta text-white' : 'text-taksu-forest'}`}>
                   {format(day, 'd')}
                 </span>
