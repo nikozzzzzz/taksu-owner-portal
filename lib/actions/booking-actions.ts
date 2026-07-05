@@ -4,7 +4,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/middleware';
 import { generateNextInvoiceNumber, upsertInvoice } from '@/lib/actions/accounting-actions';
 import { revalidatePath } from 'next/cache';
-import { beds24Client } from '@/lib/beds24/client';
+import {
+  pushBookingToBeds24,
+  updateBeds24Booking,
+  cancelBeds24Booking,
+} from '@/lib/beds24/client';
 
 // existing createBooking, updateBooking, cancelBooking...
 export async function createBooking(villaId: string, data: any) {
@@ -16,94 +20,149 @@ export async function createBooking(villaId: string, data: any) {
     if (!villa) throw new Error('Unauthorized');
   }
   
-  const payload = {
+  // `total_paid_by_guest_usd` is what the guest paid in total (gross amount from OTA or direct).
+  // `net_to_villa_usd` is what the villa receives after OTA commission. For direct bookings these are the same.
+  const totalPaid = typeof data.total_paid_by_guest_usd === 'number'
+    ? data.total_paid_by_guest_usd
+    : (typeof data.net_to_villa_usd === 'number' ? data.net_to_villa_usd : 0);
+
+  const payload: Record<string, any> = {
     villa_id: villaId,
     check_in_date: data.check_in_date,
     check_out_date: data.check_out_date,
     channel: data.channel || 'direct',
-    guest_full_name: data.guest_full_name,
+    guest_full_name: data.guest_full_name || 'Unknown Guest',
     guest_country: data.guest_country || '',
-    total_paid_by_guest_usd: data.net_to_villa_usd || 0,
+    total_paid_by_guest_usd: totalPaid,
     status: 'confirmed',
-    payout_status: 'pending', // Added for accounting flow
+    payout_status: 'pending',
     booked_at: new Date().toISOString(),
-    beds24_booking_id: null as any
+    beds24_booking_id: null,
   };
-  
-  // Push to Beds24 if it's a direct/other booking and Villa is mapped
-  if (data.channel === 'direct' || data.channel === 'other' || data.channel === 'owner_stay') {
-    const { data: villaSettings } = await supabase
-      .from('villas')
-      .select('beds24_property_id, beds24_room_id')
-      .eq('id', villaId)
-      .single();
 
-    if (villaSettings?.beds24_property_id && villaSettings?.beds24_room_id) {
-      try {
-        const b24Res = await beds24Client.pushBooking({
-          propertyId: villaSettings.beds24_property_id,
-          roomId: villaSettings.beds24_room_id,
-          arrival: data.check_in_date,
-          departure: data.check_out_date,
-          firstName: data.guest_full_name || 'Taksu',
-          lastName: data.channel === 'owner_stay' ? 'Owner Block' : 'Guest',
-          status: '1' // 1 = Confirmed in Beds24
-        });
-        if (b24Res && b24Res[0] && b24Res[0].id) {
-          payload.beds24_booking_id = b24Res[0].id;
-        }
-      } catch (err) {
-        console.error('Beds24 push failed, proceeding with DB insert only:', err);
+  // Outbound sync: push to Beds24 for direct/manual bookings so OTA calendars are blocked.
+  // We always try to sync regardless of channel (direct, other, owner_stay).
+  // Beds24 will handle availability blocking across all connected channels.
+  const { data: villaSettings } = await supabase
+    .from('villas')
+    .select('beds24_property_id, beds24_room_id')
+    .eq('id', villaId)
+    .maybeSingle();
+
+  if (villaSettings?.beds24_property_id && villaSettings?.beds24_room_id) {
+    try {
+      const [guestFirst, ...guestRest] = (data.guest_full_name || 'Guest').trim().split(' ');
+      const b24BookingId = await pushBookingToBeds24({
+        propertyId: villaSettings.beds24_property_id,
+        roomId: villaSettings.beds24_room_id,
+        arrival: data.check_in_date,
+        departure: data.check_out_date,
+        firstName: guestFirst || 'Guest',
+        lastName: guestRest.join(' ') || (data.channel === 'owner_stay' ? 'Owner Block' : ''),
+        status: '1', // Confirmed
+        price: totalPaid,
+      });
+      if (b24BookingId) {
+        payload.beds24_booking_id = b24BookingId;
+        console.log(`[booking-actions] Created Beds24 booking ID: ${b24BookingId}`);
       }
+    } catch (err) {
+      // Non-fatal: log the error but still save the booking locally
+      console.error('[booking-actions] Beds24 push failed, saving locally only:', err);
     }
   }
 
-  const { error } = await supabase.from('bookings').insert(payload as any);
+  const { error } = await supabase.from('bookings').insert(payload);
   if (error) throw new Error(error.message);
 }
 
 export async function updateBooking(bookingId: string, villaId: string, data: any) {
   const owner = await requireOwner();
   const supabase = (await createServerSupabaseClient()) as any;
-  
+
   if (owner.role !== 'admin' && owner.role !== 'root') {
-    const { data: villa } = await supabase.from('villas').select('id').eq('id', villaId).eq('owner_id', owner.id).single();
+    const { data: villa } = await supabase.from('villas').select('id').eq('id', villaId).eq('owner_id', owner.id).maybeSingle();
     if (!villa) throw new Error('Unauthorized');
   }
-  
+
+  const totalPaid = typeof data.total_paid_by_guest_usd === 'number'
+    ? data.total_paid_by_guest_usd
+    : (typeof data.net_to_villa_usd === 'number' ? data.net_to_villa_usd : 0);
+
   const payload = {
     check_in_date: data.check_in_date,
     check_out_date: data.check_out_date,
     guest_full_name: data.guest_full_name,
     guest_country: data.guest_country || '',
-    total_paid_by_guest_usd: data.net_to_villa_usd,
-    channel: data.channel
+    total_paid_by_guest_usd: totalPaid,
+    channel: data.channel,
   };
-  
-  const { error } = await supabase.from('bookings').update(payload as any).eq('id', bookingId);
+
+  // Fetch the booking to check if it has a Beds24 ID before updating the DB
+  const { data: existingBooking } = await supabase
+    .from('bookings')
+    .select('beds24_booking_id')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  const { error } = await supabase.from('bookings').update(payload).eq('id', bookingId);
   if (error) throw new Error(error.message);
+
+  // Outbound sync: push the update to Beds24 if this booking is tracked there
+  if (existingBooking?.beds24_booking_id) {
+    try {
+      const [guestFirst, ...guestRest] = (data.guest_full_name || '').trim().split(' ');
+      await updateBeds24Booking(existingBooking.beds24_booking_id, {
+        arrival: data.check_in_date,
+        departure: data.check_out_date,
+        firstName: guestFirst || undefined,
+        lastName: guestRest.join(' ') || undefined,
+        price: totalPaid,
+      });
+      console.log(`[booking-actions] Updated Beds24 booking ID: ${existingBooking.beds24_booking_id}`);
+    } catch (err) {
+      // Non-fatal: log but don't fail the local update
+      console.error('[booking-actions] Failed to sync update to Beds24:', err);
+    }
+  }
 }
 
 export async function cancelBooking(bookingId: string, villaId: string) {
   const owner = await requireOwner();
   const supabase = (await createServerSupabaseClient()) as any;
-  
+
   if (owner.role !== 'admin' && owner.role !== 'root') {
-    const { data: villa } = await supabase.from('villas').select('id').eq('id', villaId).eq('owner_id', owner.id).single();
+    const { data: villa } = await supabase.from('villas').select('id').eq('id', villaId).eq('owner_id', owner.id).maybeSingle();
     if (!villa) throw new Error('Unauthorized');
   }
-  
-  // Fetch booking first to see if it's synced to Beds24
-  const { data: booking } = await supabase.from('bookings').select('beds24_booking_id').eq('id', bookingId).single();
 
-  const { error } = await supabase.from('bookings').update({ status: 'cancelled' } as any).eq('id', bookingId);
+  // Fetch booking first to see if it's synced to Beds24 and check current status
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('beds24_booking_id, status, payout_status')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  if (!booking) throw new Error('Booking not found');
+  if (booking.status === 'cancelled') throw new Error('Booking is already cancelled');
+  if (booking.payout_status === 'received') {
+    throw new Error('Cannot cancel a booking where payout has already been received');
+  }
+
+  // Cancel locally first
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled', payout_status: 'cancelled' })
+    .eq('id', bookingId);
   if (error) throw new Error(error.message);
 
-  if (booking?.beds24_booking_id) {
+  // Then sync the cancellation to Beds24 (non-fatal if it fails)
+  if (booking.beds24_booking_id) {
     try {
-      await beds24Client.updateBookingStatus(booking.beds24_booking_id, '0'); // 0 = Cancelled in Beds24
+      await cancelBeds24Booking(booking.beds24_booking_id);
+      console.log(`[booking-actions] Cancelled Beds24 booking ID: ${booking.beds24_booking_id}`);
     } catch (err) {
-      console.error('Failed to cancel in Beds24:', err);
+      console.error('[booking-actions] Failed to cancel in Beds24 (local booking is still cancelled):', err);
     }
   }
 }

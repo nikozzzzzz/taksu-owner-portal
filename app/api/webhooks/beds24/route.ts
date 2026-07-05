@@ -1,75 +1,174 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// Beds24 sends a secret in a header when Auto Actions are configured.
+// Set BEDS24_WEBHOOK_SECRET in .env.local and configure the same value
+// in Beds24 > Settings > Notifications > HTTP Requests > Secret Header.
+const WEBHOOK_SECRET = process.env.BEDS24_WEBHOOK_SECRET;
+
+// Beds24 status codes
+const BEDS24_STATUS = {
+  CANCELLED: '0',
+  CONFIRMED: '1',
+  NEW: '2',
+  REQUEST: '3',
+  BLOCKED: '9',
+} as const;
+
+function isValidDate(dateStr: unknown): boolean {
+  if (typeof dateStr !== 'string') return false;
+  const d = new Date(dateStr);
+  return !isNaN(d.getTime());
+}
+
+function mapB24Channel(apiSource: unknown, referrer: unknown): string {
+  const src = `${apiSource || ''} ${referrer || ''}`.toLowerCase().trim();
+  if (src.includes('airbnb')) return 'airbnb';
+  if (src.includes('booking')) return 'booking.com';
+  if (src.includes('expedia') || src.includes('vrbo')) return 'expedia';
+  if (src.includes('direct') || src.includes('website')) return 'direct';
+  return 'other';
+}
+
+function mapB24StatusToTaksu(b24Status: string | number): 'confirmed' | 'cancelled' | 'pending' {
+  const s = String(b24Status);
+  if (s === BEDS24_STATUS.CANCELLED) return 'cancelled';
+  if (s === BEDS24_STATUS.CONFIRMED || s === BEDS24_STATUS.BLOCKED) return 'confirmed';
+  return 'pending'; // NEW / REQUEST = not yet confirmed
+}
+
 export async function POST(req: NextRequest) {
+  // ── 1. Authenticate the webhook request ─────────────────────────────────────
+  if (WEBHOOK_SECRET) {
+    const incomingSecret =
+      req.headers.get('x-beds24-secret') || req.headers.get('authorization');
+    if (!incomingSecret || incomingSecret !== WEBHOOK_SECRET) {
+      console.warn('[Webhook/beds24] Rejected request: invalid or missing secret.');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } else {
+    // Warn loudly in logs but don't hard-fail to support initial setup without a secret
+    console.warn(
+      '[Webhook/beds24] BEDS24_WEBHOOK_SECRET is not set. Webhook is unauthenticated — set this in production!'
+    );
+  }
+
+  // ── 2. Parse payload ─────────────────────────────────────────────────────────
+  let rawPayload: unknown;
   try {
-    const payload = await req.json();
+    rawPayload = await req.json();
+  } catch {
+    console.error('[Webhook/beds24] Failed to parse JSON body.');
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
 
-    // In a real integration, we should check a signature or token
-    // For this example, we expect an array of bookings or a single booking
-    const bookings = Array.isArray(payload) ? payload : [payload];
+  const bookings = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
+  const supabase = (await createServerSupabaseClient()) as any;
 
-    const supabase = (await createServerSupabaseClient()) as any;
+  const results: { id: number; outcome: 'created' | 'updated' | 'skipped'; reason?: string }[] = [];
 
-    for (const b24Booking of bookings) {
-      if (!b24Booking.id || !b24Booking.propertyId || !b24Booking.roomId) continue;
+  for (const b24 of bookings) {
+    const bookingId = b24?.id;
+    const propertyId = b24?.propertyId;
+    const roomId = b24?.roomId;
 
-      // Map Beds24 property/room to Taksu Villa ID
-      const { data: villa } = await supabase
-        .from('villas')
-        .select('id')
-        .eq('beds24_property_id', b24Booking.propertyId)
-        .eq('beds24_room_id', b24Booking.roomId)
-        .single();
-
-      if (!villa) {
-        console.warn(`Webhook ignored: No Taksu villa mapped for Beds24 Property ${b24Booking.propertyId}`);
-        continue;
-      }
-
-      // Check if it's a cancellation
-      // Beds24 status: 0 = Cancelled, 1 = Confirmed, 2 = New, 3 = Request
-      const isCancelled = b24Booking.status === '0' || b24Booking.status === 0;
-
-      // Determine channel
-      let channel = 'other';
-      const b24Channel = b24Booking.apiSource || b24Booking.referrer || '';
-      if (b24Channel.toLowerCase().includes('airbnb')) channel = 'airbnb';
-      else if (b24Channel.toLowerCase().includes('booking')) channel = 'booking.com';
-      else if (b24Channel.toLowerCase().includes('direct')) channel = 'direct';
-
-      const bookingPayload = {
-        beds24_booking_id: b24Booking.id,
-        villa_id: villa.id,
-        check_in_date: b24Booking.arrival,
-        check_out_date: b24Booking.departure,
-        guest_full_name: `${b24Booking.firstName || ''} ${b24Booking.lastName || ''}`.trim() || 'Unknown Guest',
-        total_paid_by_guest_usd: b24Booking.price || 0,
-        channel: channel,
-        status: isCancelled ? 'cancelled' : 'confirmed',
-        beds24_status: String(b24Booking.status),
-        booked_at: b24Booking.bookingTime || new Date().toISOString()
-      };
-
-      // Upsert into Taksu database based on beds24_booking_id
-      const { data: existing } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('beds24_booking_id', b24Booking.id)
-        .single();
-
-      if (existing) {
-        // Update
-        await supabase.from('bookings').update(bookingPayload).eq('id', existing.id);
-      } else {
-        // Insert
-        await supabase.from('bookings').insert(bookingPayload);
-      }
+    // ── 3. Validate required fields ──────────────────────────────────────────
+    if (!bookingId || !propertyId || !roomId) {
+      console.warn('[Webhook/beds24] Skipping record: missing id, propertyId, or roomId.', b24);
+      results.push({ id: bookingId, outcome: 'skipped', reason: 'Missing id/propertyId/roomId' });
+      continue;
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!isValidDate(b24.arrival) || !isValidDate(b24.departure)) {
+      console.warn(
+        `[Webhook/beds24] Booking ${bookingId}: invalid arrival/departure dates (${b24.arrival} → ${b24.departure})`
+      );
+      results.push({ id: bookingId, outcome: 'skipped', reason: 'Invalid dates' });
+      continue;
+    }
+
+    // Sanity check: arrival must be before departure
+    if (new Date(b24.arrival) >= new Date(b24.departure)) {
+      console.warn(
+        `[Webhook/beds24] Booking ${bookingId}: arrival (${b24.arrival}) is not before departure (${b24.departure}).`
+      );
+      results.push({ id: bookingId, outcome: 'skipped', reason: 'arrival >= departure' });
+      continue;
+    }
+
+    // ── 4. Look up the Taksu villa mapping ──────────────────────────────────
+    const { data: villa } = await supabase
+      .from('villas')
+      .select('id')
+      .eq('beds24_property_id', propertyId)
+      .eq('beds24_room_id', roomId)
+      .maybeSingle(); // use maybeSingle to avoid 406 error when no row found
+
+    if (!villa) {
+      console.warn(
+        `[Webhook/beds24] Booking ${bookingId}: No villa mapped for Beds24 Property ${propertyId} / Room ${roomId}. Skipping.`
+      );
+      results.push({ id: bookingId, outcome: 'skipped', reason: 'No villa mapping found' });
+      continue;
+    }
+
+    // ── 5. Build the canonical booking payload ───────────────────────────────
+    const guestFirst = String(b24.firstName || '').trim();
+    const guestLast = String(b24.lastName || '').trim();
+    const guestName = [guestFirst, guestLast].filter(Boolean).join(' ') || 'Unknown Guest';
+
+    // Beds24 `price` is the total booking price in the account's default currency.
+    // We store it as-is; currency conversion can be handled in accounting.
+    const totalPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
+
+    const status = mapB24StatusToTaksu(b24.status);
+    const channel = mapB24Channel(b24.apiSource, b24.referrer);
+
+    const bookingPayload = {
+      villa_id: villa.id,
+      beds24_booking_id: bookingId,
+      beds24_status: String(b24.status ?? ''),
+      check_in_date: b24.arrival,
+      check_out_date: b24.departure,
+      guest_full_name: guestName,
+      total_paid_by_guest_usd: totalPrice,
+      channel,
+      status,
+      // Inbound bookings from OTAs start with payout_status = pending
+      payout_status: status === 'cancelled' ? 'cancelled' : 'pending',
+      booked_at: isValidDate(b24.bookingTime) ? b24.bookingTime : new Date().toISOString(),
+    };
+
+    // ── 6. Upsert the booking ────────────────────────────────────────────────
+    const { data: existing } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('beds24_booking_id', bookingId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update(bookingPayload)
+        .eq('id', existing.id);
+
+      if (updateError) {
+        console.error(`[Webhook/beds24] Failed to update booking ${bookingId}:`, updateError);
+      } else {
+        console.log(`[Webhook/beds24] Updated booking ${bookingId} (local id: ${existing.id})`);
+        results.push({ id: bookingId, outcome: 'updated' });
+      }
+    } else {
+      const { error: insertError } = await supabase.from('bookings').insert(bookingPayload);
+
+      if (insertError) {
+        console.error(`[Webhook/beds24] Failed to insert booking ${bookingId}:`, insertError);
+      } else {
+        console.log(`[Webhook/beds24] Created booking ${bookingId}`);
+        results.push({ id: bookingId, outcome: 'created' });
+      }
+    }
   }
+
+  return NextResponse.json({ success: true, processed: results.length, results });
 }
