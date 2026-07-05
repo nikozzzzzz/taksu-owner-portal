@@ -46,19 +46,21 @@ test.describe('Tasks Board (Kanban)', () => {
 
     // 6. Open Task Modal and Edit
     await page.click(`text=${taskName}`);
-    await expect(page.getByRole('heading', { name: 'Assignment' })).toBeVisible({ timeout: 15000 });
+    // Wait for the modal backdrop to appear
+    await expect(page.locator('.fixed.inset-0')).toBeVisible({ timeout: 15000 });
+    // The task modal sidebar shows "Assignment" as an h4
+    await expect(page.locator('h4:has-text("Assignment")')).toBeVisible({ timeout: 15000 });
     
     // Add comment
     await page.fill('textarea[placeholder="Write a comment..."]', 'This is an E2E test comment');
     await page.click('button:has-text("Save Comment")');
     await expect(page.locator('text=This is an E2E test comment')).toBeVisible({ timeout: 15000 });
 
-    // Close Modal
-    await page.locator('button').filter({ hasText: '' }).first().click(); // click X button or overlay (clicking overlay is trickier, let's just press Escape)
+    // Close Modal via Escape key
     await page.keyboard.press('Escape');
     
-    // Wait for modal to close (modal contains 'Assignment' text)
-    await expect(page.getByRole('heading', { name: 'Assignment' })).not.toBeVisible();
+    // Wait for modal to close
+    await expect(page.locator('.fixed.inset-0')).not.toBeVisible({ timeout: 10000 });
   });
 });
 

@@ -129,12 +129,12 @@ export function BookingModal({ villaId, booking, selectedDate, open, onOpenChang
           </div>
 
           <div className="space-y-2">
-            <Label>Type / Channel</Label>
+            <Label htmlFor="channel-select">Type / Channel</Label>
             <Select 
               value={formData.channel} 
               onValueChange={v => setFormData({...formData, channel: v, guest_full_name: v === 'maintenance' || v === 'owner_stay' ? 'BLOCK' : formData.guest_full_name})}
             >
-              <SelectTrigger>
+              <SelectTrigger id="channel-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

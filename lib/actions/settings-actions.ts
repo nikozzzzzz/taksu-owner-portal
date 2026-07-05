@@ -84,6 +84,7 @@ export async function updatePreferences(formData: FormData) {
     statement_language: (formData.get('statement_language') as string) || 'en',
     statement_email: formData.get('statement_email') as string || null,
     report_frequency: (formData.get('report_frequency') as string) || 'monthly',
+    email_notifications_enabled: formData.get('email_notifications_enabled') === 'true',
     booking_notifications_enabled: formData.get('booking_notifications_enabled') === 'true',
     dgt1_notifications_enabled: formData.get('dgt1_notifications_enabled') === 'true',
   };

@@ -116,6 +116,20 @@ fi
 pm2 save
 success "PM2 restarted"
 
+log "Waiting for app to become ready on localhost:3000..."
+MAX_WAIT=60
+WAITED=0
+until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
+  if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+    echo "ERROR: App did not start within ${MAX_WAIT}s. Check pm2 logs."
+    pm2 logs "$APP_NAME" --lines 30 --nostream
+    exit 1
+  fi
+  sleep 2
+  WAITED=$((WAITED + 2))
+done
+success "App is ready (waited ${WAITED}s)"
+
 log "Running E2E tests (pnpm test:e2e)..."
 pnpm test:e2e
 success "E2E tests passed"

@@ -28,16 +28,19 @@ test.describe('Dashboard Flow', () => {
   });
 
   test('Sidebar navigation works from Dashboard', async ({ page }) => {
+    // The portal sidebar is inside an <aside> element containing a <nav>
+    const sidebarNav = page.locator('aside nav');
+
     // Navigate to Statements
-    await page.click('nav a:has-text("Statements")');
-    await expect(page).toHaveURL(/.*\/statements/);
+    await sidebarNav.locator('a:has-text("Statements")').click();
+    await page.waitForURL(/.*\/statements/, { timeout: 15000 });
 
     // Navigate to Pool Position
-    await page.click('nav a:has-text("Pool Position")');
-    await expect(page).toHaveURL(/.*\/pool-position/);
+    await sidebarNav.locator('a:has-text("Pool Position")').click();
+    await page.waitForURL(/.*\/pool-position/, { timeout: 15000 });
 
     // Navigate back to Dashboard
-    await page.click('nav a:has-text("Dashboard")');
-    await expect(page).toHaveURL(/.*\/dashboard/, { timeout: 15000 });
+    await sidebarNav.locator('a:has-text("Dashboard")').click();
+    await page.waitForURL(/.*\/dashboard/, { timeout: 15000 });
   });
 });
