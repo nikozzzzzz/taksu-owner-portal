@@ -1,0 +1,10 @@
+--- tests/e2e/settings.spec.ts
++++ tests/e2e/settings.spec.ts
+@@ -51,6 +51,8 @@
+     
+     // Test the Banking submission (which requires ReAuth)
++    await page.fill('input[name="bank_name"]', 'Test Bank');
++    await page.fill('input[name="bank_account_holder"]', 'Test Owner');
+     await page.locator('button', { hasText: 'Save Banking Details' }).click();
+     
+     // Handle the ReAuth Dialog

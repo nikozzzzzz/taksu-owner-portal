@@ -58,8 +58,8 @@ export async function createBooking(villaId: string, data: any) {
         arrival: data.check_in_date,
         departure: data.check_out_date,
         firstName: guestFirst || 'Guest',
-        lastName: guestRest.join(' ') || (data.channel === 'owner_stay' ? 'Owner Block' : ''),
-        status: '1', // Confirmed
+        lastName: guestRest.join(' ') || (['maintenance', 'owner_stay'].includes(data.channel) ? 'Block' : ''),
+        status: ['maintenance', 'owner_stay'].includes(data.channel) ? '9' : '1', // 9 = Blocked, 1 = Confirmed
         price: totalPaid,
       });
       if (b24BookingId) {
@@ -117,6 +117,7 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
         departure: data.check_out_date,
         firstName: guestFirst || undefined,
         lastName: guestRest.join(' ') || undefined,
+        status: ['maintenance', 'owner_stay'].includes(data.channel) ? '9' : '1',
         price: totalPaid,
       });
       console.log(`[booking-actions] Updated Beds24 booking ID: ${existingBooking.beds24_booking_id}`);

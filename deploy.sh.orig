@@ -100,7 +100,6 @@ if [ "$SKIP_INSTALL" = "false" ]; then
 fi
 
 log "Stopping PM2 process before build..."
-  ulimit -n 65535 2>/dev/null || true
 if pm2 describe "$APP_NAME" &>/dev/null; then
   pm2 stop "$APP_NAME"
 fi
@@ -114,7 +113,6 @@ npx playwright install chromium
 success "Playwright browsers installed"
 
 log "Restarting PM2 process: $APP_NAME..."
-  ulimit -n 65535 2>/dev/null || true
 if pm2 describe "$APP_NAME" &>/dev/null; then
   pm2 restart "$APP_NAME"
 else

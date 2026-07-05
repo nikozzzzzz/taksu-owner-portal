@@ -1,0 +1,10 @@
+--- deploy.sh
++++ deploy.sh
+@@ -107,6 +107,7 @@
+   log "Building application (pnpm build)..."
+   pnpm build
+ 
++  ulimit -n 65535 2>/dev/null || true
+   if pm2 describe "$APP_NAME" &>/dev/null; then
+     pm2 restart "$APP_NAME" --update-env
+   else

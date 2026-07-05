@@ -49,8 +49,6 @@ test.describe('Settings Flow', () => {
     await expect(page.locator('label', { hasText: 'Payout Currency' })).toBeVisible();
     
     // Test the Banking submission (which requires ReAuth)
-    await page.fill('input[name="bank_name"]', 'Test Bank');
-    await page.fill('input[name="bank_account_holder"]', 'Test Owner');
     await page.locator('button', { hasText: 'Save Banking Details' }).click();
     
     // Handle the ReAuth Dialog

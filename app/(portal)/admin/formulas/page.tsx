@@ -1,39 +1,51 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { FormulaList } from '@/components/admin/formula-list';
+import { FormulasClient } from './formulas-client';
 
 export const metadata = {
   title: 'Yield Formulas | Taksu Owner Portal',
 };
 
-export default async function AdminFormulasPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default async function FormulasPage() {
+  const supabase = (await createServerSupabaseClient()) as any;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect('/login');
   }
 
-  const role = user.app_metadata?.role || 'guest';
-  if (!['admin', 'root'].includes(role)) {
+  const { data: owner } = await supabase
+    .from('owners')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!owner || (owner.role !== 'admin' && owner.role !== 'root')) {
     redirect('/dashboard');
   }
 
-  const { data: formulas } = await (supabase as any)
+  // Fetch formulas
+  const { data: formulas, error } = await supabase
     .from('yield_formulas')
     .select('*')
-    .order('name');
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching yield formulas:', error);
+  }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-semibold text-taksu-forest">Yield Formulas</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Manage distribution rules and calculation formulas for Pools.
+        <h1 className="font-serif text-3xl font-medium text-taksu-forest">Yield Formulas</h1>
+        <p className="mt-2 text-sm text-taksu-ink/70">
+          Define distribution models for revenue pools.
         </p>
       </div>
 
-      <FormulaList initialFormulas={formulas || []} />
+      <FormulasClient initialFormulas={formulas || []} />
     </div>
   );
 }

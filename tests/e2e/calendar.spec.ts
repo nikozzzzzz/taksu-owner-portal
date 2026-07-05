@@ -40,8 +40,8 @@ test.describe('Booking Calendar Flow', () => {
     await expect(page.getByText('New Reservation')).toBeVisible();
 
     // 6. Fill out form as a maintenance block
-    await page.getByLabel('Type / Channel').click();
-    await page.getByText('Maintenance (Block)').click();
+    await page.locator('#channel-select').click();
+    await page.getByRole('option', { name: 'Maintenance (Block)' }).click();
 
     // Fill notes (re-using guest country field)
     await page.getByPlaceholder('Reason for block...').fill('Plumbing repair E2E');

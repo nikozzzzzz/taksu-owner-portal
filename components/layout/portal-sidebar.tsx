@@ -272,7 +272,7 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
               </li>
               <li>
                 <Link
-                  href="/admin/integrations/beds24"
+                  href="/admin/integrations"
                   onClick={onClose}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
@@ -287,7 +287,7 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
                       pathname.startsWith('/admin/integrations') ? 'text-taksu-bamboo' : 'text-white/40'
                     )}
                   />
-                  <span>Admin: Integrations</span>
+                  <span>Integrations</span>
                 </Link>
               </li>
             </>

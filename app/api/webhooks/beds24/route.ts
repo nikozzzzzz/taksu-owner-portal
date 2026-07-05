@@ -122,7 +122,10 @@ export async function POST(req: NextRequest) {
     const totalPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
 
     const status = mapB24StatusToTaksu(b24.status);
-    const channel = mapB24Channel(b24.apiSource, b24.referrer);
+    let channel = mapB24Channel(b24.apiSource, b24.referrer);
+    if (String(b24.status) === BEDS24_STATUS.BLOCKED) {
+        channel = 'maintenance';
+    }
 
     const bookingPayload = {
       villa_id: villa.id,
@@ -134,8 +137,6 @@ export async function POST(req: NextRequest) {
       total_paid_by_guest_usd: totalPrice,
       channel,
       status,
-      // Inbound bookings from OTAs start with payout_status = pending
-      payout_status: status === 'cancelled' ? 'cancelled' : 'pending',
       booked_at: isValidDate(b24.bookingTime) ? b24.bookingTime : new Date().toISOString(),
     };
 

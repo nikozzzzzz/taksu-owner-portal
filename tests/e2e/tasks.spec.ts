@@ -45,7 +45,7 @@ test.describe('Tasks Board (Kanban)', () => {
     await expect(page.locator(`text=${taskName}`)).toBeVisible({ timeout: 15000 });
 
     // 6. Open Task Modal and Edit
-    await page.click(`text=${taskName}`);
+    await page.locator(`text=${taskName}`).click();
     // Wait for the modal backdrop to appear
     await expect(page.locator('.fixed.inset-0')).toBeVisible({ timeout: 15000 });
     // The task modal sidebar shows "Assignment" as an h4
