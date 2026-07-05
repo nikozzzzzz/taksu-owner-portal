@@ -98,7 +98,7 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
               className={`min-h-[100px] bg-white p-1 relative group ${!isCurrentMonth ? 'opacity-40' : ''}`}
             >
               <div 
-                className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0" 
+                className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0 pointer-events-none group-hover:pointer-events-auto" 
                 onClick={() => setNewBookingDate(day)}
               />
               <div className="flex justify-between items-start relative z-10 pointer-events-none">
