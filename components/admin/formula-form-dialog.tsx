@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2 } from 'lucide-react';
-import { upsertFormula } from '@/lib/actions/formula-actions';
+import { createYieldFormula, updateYieldFormula } from '@/lib/actions/formula-actions';
 
 interface FormulaFormDialogProps {
   formula?: any | null;
@@ -80,7 +80,11 @@ export function FormulaFormDialog({ formula, isOpen, onClose }: FormulaFormDialo
     }
 
     try {
-      await upsertFormula(formData);
+      if (isEditing) {
+        await updateYieldFormula(formData.id, formData);
+      } else {
+        await createYieldFormula(formData);
+      }
       onClose();
     } catch (err: any) {
       setError(err.message);

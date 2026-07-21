@@ -14,13 +14,8 @@ async function requireAdmin() {
     throw new Error('Unauthorized');
   }
 
-  const { data: owner } = await supabase
-    .from('owners')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!owner || (owner.role !== 'admin' && owner.role !== 'root')) {
+  const role = user?.app_metadata?.role || 'guest';
+  if (!['admin', 'root'].includes(role)) {
     throw new Error('Unauthorized');
   }
 }

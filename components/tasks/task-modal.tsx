@@ -40,6 +40,16 @@ export function TaskModal({ task, project, columns, owners, onClose, onUpdate }:
     getTaskComments(task.id).then(setComments);
   }, [task.id]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleTitleBlur = async () => {
     setIsEditingTitle(false);
     if (title !== task.title) {

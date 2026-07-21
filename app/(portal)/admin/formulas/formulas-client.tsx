@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { FormulaDialog } from './formula-dialog';
+import { FormulaFormDialog } from '@/components/admin/formula-form-dialog';
 import { deleteYieldFormula } from '@/lib/actions/formula-actions';
 import { toast } from 'sonner';
 
@@ -48,7 +48,13 @@ export function FormulasClient({ initialFormulas }: FormulasClientProps) {
   const formatRules = (rules: any[]) => {
     if (!Array.isArray(rules)) return 'Invalid rules';
     return rules
-      .map(r => `${r.target.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${r.percentage}%`)
+      .map(r => {
+        const methodLabel = r.method === 'equal_share' ? 'Equal Share' : 'Proportional';
+        const metricLabel = r.metric && r.metric !== 'none'
+          ? ` (${r.metric.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())})`
+          : '';
+        return `${methodLabel}${metricLabel}: ${r.weight}%`;
+      })
       .join(' | ');
   };
 
@@ -127,14 +133,11 @@ export function FormulasClient({ initialFormulas }: FormulasClientProps) {
       </div>
 
       {dialogOpen && (
-        <FormulaDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            // Quick and dirty reload if dialog closes and it might have saved
-            if (!open) {
-              window.location.reload();
-            }
+        <FormulaFormDialog
+          isOpen={dialogOpen}
+          onClose={() => {
+            setDialogOpen(false);
+            window.location.reload();
           }}
           formula={editingFormula}
         />

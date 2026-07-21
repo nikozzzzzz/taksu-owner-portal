@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit2, Trash2, FileText } from 'lucide-react';
 import { FormulaFormDialog } from './formula-form-dialog';
-import { deleteFormula } from '@/lib/actions/formula-actions';
+import { deleteYieldFormula } from '@/lib/actions/formula-actions';
 
 export function FormulaList({ initialFormulas }: { initialFormulas: any[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,7 +23,7 @@ export function FormulaList({ initialFormulas }: { initialFormulas: any[] }) {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this formula?')) return;
     try {
-      await deleteFormula(id);
+      await deleteYieldFormula(id);
     } catch (err: any) {
       alert(err.message);
     }
