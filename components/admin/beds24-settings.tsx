@@ -1,12 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link2, Unlink, RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { connectBeds24, syncBeds24Properties } from '@/lib/actions/beds24-actions';
+import { Badge } from '@/components/ui/badge';
+import {
+  Link2,
+  Unlink,
+  RefreshCw,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Download,
+  Clock,
+  Building2,
+  CalendarCheck,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+} from 'lucide-react';
+import {
+  connectBeds24,
+  syncBeds24Properties,
+  fullSyncBeds24,
+  getBeds24SyncHistory,
+} from '@/lib/actions/beds24-actions';
 
 interface Status {
   connected: boolean;
@@ -19,18 +38,43 @@ interface SyncedProperty {
   rooms?: { id: number; name: string }[];
 }
 
+interface SyncLogEntry {
+  id: string;
+  triggered_by: string;
+  status: 'running' | 'success' | 'error';
+  properties_found: number;
+  bookings_fetched: number;
+  bookings_created: number;
+  bookings_updated: number;
+  bookings_skipped: number;
+  error_message?: string;
+  started_at: string;
+  finished_at?: string;
+}
+
 export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
   const [status, setStatus] = useState<Status>(initialStatus);
   const [inviteCode, setInviteCode] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [fullSyncing, setFullSyncing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [properties, setProperties] = useState<SyncedProperty[] | null>(null);
+  const [syncHistory, setSyncHistory] = useState<SyncLogEntry[] | null>(null);
+  const [syncResult, setSyncResult] = useState<{
+    properties_found: number;
+    bookings_fetched: number;
+    bookings_created: number;
+    bookings_updated: number;
+    bookings_skipped: number;
+  } | null>(null);
 
   const clearMessages = () => {
     setErrorMsg(null);
     setSuccessMsg(null);
+    setSyncResult(null);
   };
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -45,12 +89,13 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
     setConnecting(true);
     try {
       const res = await connectBeds24(trimmed);
-      if (res.success) {
+      if (res?.success) {
         setStatus({ connected: true, lastConnected: new Date().toISOString() });
         setInviteCode('');
+        setReconnecting(false);
         setSuccessMsg('Successfully connected to Beds24!');
       } else {
-        setErrorMsg(res.error || 'Unknown error connecting to Beds24.');
+        setErrorMsg(res?.error || 'Unknown error connecting to Beds24.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Unexpected error.');
@@ -59,12 +104,12 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
     }
   };
 
-  const handleSyncProperties = async () => {
+  const handleFetchProperties = async () => {
     clearMessages();
     setSyncing(true);
     try {
       const res = await syncBeds24Properties();
-      if (res.success && Array.isArray(res.data)) {
+      if (res?.success && Array.isArray(res.data)) {
         setProperties(res.data);
         setSuccessMsg(
           res.data.length > 0
@@ -72,7 +117,7 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
             : 'No properties found in this Beds24 account.'
         );
       } else {
-        setErrorMsg(res.error || 'Failed to fetch properties from Beds24.');
+        setErrorMsg(res?.error || 'Failed to fetch properties from Beds24.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Unexpected error.');
@@ -80,6 +125,35 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
       setSyncing(false);
     }
   };
+
+  const handleFullSync = async () => {
+    clearMessages();
+    setFullSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fullSyncBeds24();
+      if (res?.success) {
+        setSyncResult(res.data ?? null);
+        setSuccessMsg(
+          `Full sync complete — ${res.data?.bookings_created ?? 0} created, ${res.data?.bookings_updated ?? 0} updated.`
+        );
+        // Refresh sync history
+        const hist = await getBeds24SyncHistory(5);
+        if (hist?.success) setSyncHistory(hist.data);
+      } else {
+        setErrorMsg(res?.error || 'Full sync failed.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Unexpected error during sync.');
+    } finally {
+      setFullSyncing(false);
+    }
+  };
+
+  const loadSyncHistory = useCallback(async () => {
+    const res = await getBeds24SyncHistory(5);
+    if (res?.success) setSyncHistory(res.data);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -97,6 +171,7 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
         </div>
       )}
 
+      {/* ── Connection Status Card ───────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -154,72 +229,228 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
               </div>
             </form>
           ) : (
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CheckCircle2 className="h-5 w-5 text-taksu-jungle" />
-                Last synchronized:{' '}
-                {status.lastConnected
-                  ? new Date(status.lastConnected).toLocaleString()
-                  : 'Never'}
-              </div>
-
-              <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <CheckCircle2 className="h-5 w-5 text-taksu-jungle" />
+                  Last synchronized:{' '}
+                  {status.lastConnected
+                    ? new Date(status.lastConnected).toLocaleString()
+                    : 'Never'}
+                </div>
                 <Button
-                  onClick={handleSyncProperties}
-                  disabled={syncing}
-                  variant="outline"
-                  className="flex-1"
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-gray-700 text-xs gap-1.5"
+                  onClick={() => { setReconnecting((v) => !v); clearMessages(); }}
                 >
-                  {syncing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Fetch Properties
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {reconnecting ? 'Cancel' : 'Update Invite Code'}
                 </Button>
               </div>
 
-              {/* Properties list */}
-              {properties && properties.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">
-                    Beds24 Properties ({properties.length})
-                  </p>
-                  <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 text-sm">
-                    {properties.map((prop: SyncedProperty) => (
-                      <div key={prop.id} className="px-4 py-3">
-                        <p className="font-medium text-taksu-forest">
-                          {prop.name || `Property ${prop.id}`}{' '}
-                          <span className="text-gray-400 font-normal">#{prop.id}</span>
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          To enable sync, assign this property and room ID to a Villa via Admin → Villas.
-                        </p>
-                      </div>
-                    ))}
+              {reconnecting && (
+                <form onSubmit={handleConnect} className="space-y-2 pt-1 border-t border-gray-100">
+                  <Label htmlFor="inviteCodeReconnect" className="text-sm">
+                    New Invite Code
+                  </Label>
+                  <div className="flex gap-3">
+                    <Input
+                      id="inviteCodeReconnect"
+                      type="password"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      placeholder="Paste your new invite code here"
+                      required
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="submit"
+                      disabled={connecting}
+                      className="bg-taksu-jungle hover:bg-taksu-jungle/90 shrink-0"
+                    >
+                      {connecting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Link2 className="h-4 w-4 mr-2" />
+                      )}
+                      Reconnect
+                    </Button>
                   </div>
-                </div>
-              )}
-
-              {properties && properties.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-2">
-                  No properties returned from Beds24. Check your account configuration.
-                </p>
+                  <p className="text-xs text-gray-400">
+                    Generate a new Invite Code in Beds24 under{' '}
+                    <strong>Settings &rarr; Account &rarr; API v2 &rarr; Invite Codes</strong>.
+                  </p>
+                </form>
               )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Webhook setup guide */}
+      {/* ── Full Sync Card (only shown when connected) ─────────────────────── */}
+      {status.connected && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Full Two-Way Sync
+            </CardTitle>
+            <CardDescription>
+              Pull all properties, rooms, and bookings (±2 years) from Beds24 into Taksu.
+              Auto-maps villas by property/room ID.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={handleFullSync}
+                disabled={fullSyncing}
+                className="flex-1 bg-taksu-jungle hover:bg-taksu-jungle/90"
+              >
+                {fullSyncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <ArrowDownToLine className="h-4 w-4 mr-2" />
+                )}
+                {fullSyncing ? 'Syncing…' : 'Run Full Sync'}
+              </Button>
+
+              <Button
+                onClick={handleFetchProperties}
+                disabled={syncing}
+                variant="outline"
+                className="flex-1"
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Building2 className="h-4 w-4 mr-2" />
+                )}
+                Fetch Properties
+              </Button>
+
+              <Button
+                onClick={loadSyncHistory}
+                variant="ghost"
+                size="sm"
+                className="text-gray-500"
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                History
+              </Button>
+            </div>
+
+            {/* Sync result counters */}
+            {syncResult && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                {[
+                  { label: 'Properties', value: syncResult.properties_found, icon: Building2, color: 'text-blue-600 bg-blue-50' },
+                  { label: 'Fetched',    value: syncResult.bookings_fetched,  icon: Download,       color: 'text-gray-600 bg-gray-50' },
+                  { label: 'Created',    value: syncResult.bookings_created,  icon: ArrowDownToLine, color: 'text-green-700 bg-green-50' },
+                  { label: 'Updated',    value: syncResult.bookings_updated,  icon: RefreshCw,      color: 'text-amber-700 bg-amber-50' },
+                  { label: 'Skipped',    value: syncResult.bookings_skipped,  icon: CalendarCheck,  color: 'text-gray-500 bg-gray-50' },
+                ].map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className={`rounded-lg px-3 py-2 text-center ${color}`}>
+                    <Icon className="h-4 w-4 mx-auto mb-1 opacity-70" />
+                    <div className="text-lg font-semibold">{value}</div>
+                    <div className="text-xs">{label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Properties list */}
+            {properties && properties.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Beds24 Properties ({properties.length})
+                </p>
+                <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 text-sm">
+                  {properties.map((prop: SyncedProperty) => (
+                    <div key={prop.id} className="px-4 py-3">
+                      <p className="font-medium text-taksu-forest">
+                        {prop.name || `Property ${prop.id}`}{' '}
+                        <span className="text-gray-400 font-normal">#{prop.id}</span>
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Assign this property and room ID to a Villa via{' '}
+                        <strong>Admin → Villas</strong>.
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {properties && properties.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-2">
+                No properties returned from Beds24. Check your account configuration.
+              </p>
+            )}
+
+            {/* Sync history */}
+            {syncHistory && syncHistory.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <p className="text-sm font-medium text-gray-700">Recent Syncs</p>
+                <div className="space-y-2">
+                  {syncHistory.map((run) => (
+                    <div
+                      key={run.id}
+                      className="flex items-start gap-3 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2"
+                    >
+                      {run.status === 'success' ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                      ) : run.status === 'error' ? (
+                        <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                      ) : (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mt-0.5 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={run.status === 'success' ? 'success' : run.status === 'error' ? 'destructive' : 'outline'}
+                            className="text-[10px] px-1.5 py-0"
+                          >
+                            {run.status}
+                          </Badge>
+                          <span className="text-gray-400">
+                            {new Date(run.started_at).toLocaleString()}
+                          </span>
+                          <span className="text-gray-400 capitalize">· {run.triggered_by}</span>
+                        </div>
+                        {run.status === 'success' && (
+                          <div className="mt-1 text-gray-500">
+                            {run.bookings_created} created · {run.bookings_updated} updated ·{' '}
+                            {run.bookings_skipped} skipped
+                          </div>
+                        )}
+                        {run.error_message && (
+                          <div className="mt-1 text-red-500 truncate">{run.error_message}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Webhook Setup Guide ──────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Webhook Setup</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowUpFromLine className="h-4 w-4" />
+            Real-Time Webhook (Beds24 → Taksu)
+          </CardTitle>
           <CardDescription>
             Configure Beds24 to push booking events in real-time
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-gray-600 space-y-2">
+        <CardContent className="text-sm text-gray-600 space-y-3">
           <p>
             In Beds24, go to <strong>Settings → Notifications → HTTP Requests</strong> and add a
             POST notification to:
@@ -228,10 +459,11 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
             {typeof window !== 'undefined' ? window.location.origin : '[YOUR_DOMAIN]'}
             /api/webhooks/beds24
           </code>
-          <p className="text-xs text-gray-400">
-            Set the <strong>BEDS24_WEBHOOK_SECRET</strong> environment variable and configure the
-            same value as the secret header in Beds24 for secure, authenticated webhooks.
-          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+            <strong>Security:</strong> Set the <strong>BEDS24_WEBHOOK_SECRET</strong> environment
+            variable and configure the same value as the secret header in Beds24 for authenticated
+            webhooks.
+          </div>
         </CardContent>
       </Card>
     </div>

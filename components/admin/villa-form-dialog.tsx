@@ -57,13 +57,19 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     owner_id: villa?.owner_id || '',
     pool_id: villa?.pool_id || '',
     
-    // Physical
+    // Physical & Contact
     square_meters: villa?.square_meters || '',
     land_area_sqm: villa?.land_area_sqm || '',
     build_year: villa?.build_year || new Date().getFullYear(),
     physical_address: villa?.physical_address || '',
     google_maps_url: villa?.google_maps_url || '',
     smart_lock_id: villa?.smart_lock_id || '',
+    address: villa?.address || '',
+    city: villa?.city || '',
+    phone: villa?.phone || '',
+    email: villa?.email || '',
+    beds24_property_id: villa?.beds24_property_id || '',
+    beds24_room_id: villa?.beds24_room_id || '',
     
     // Legal & Utilities
     cadastral_number: villa?.cadastral_number || '',
@@ -125,6 +131,8 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
       photo_urls: formData.photo_urls ? formData.photo_urls.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       amenities: formData.amenities ? formData.amenities.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       hostaway_listing_id: formData.hostaway_listing_id ? Number(formData.hostaway_listing_id) : null,
+      beds24_property_id: formData.beds24_property_id ? Number(formData.beds24_property_id) : null,
+      beds24_room_id: formData.beds24_room_id ? Number(formData.beds24_room_id) : null,
     };
     
     await onSave(payload);
@@ -206,7 +214,12 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <InputField label="Build Year" name="build_year" type="number"  value={(formData as any).build_year} onChange={handleChange} />
                   <InputField label="Smart Lock ID" name="smart_lock_id"  value={(formData as any).smart_lock_id} onChange={handleChange} />
                 </div>
-                <InputField label="Physical Address" name="physical_address"  value={(formData as any).physical_address} onChange={handleChange} />
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <InputField label="Address (Auto-Synced)" name="address"  value={(formData as any).address} onChange={handleChange} />
+                  <InputField label="City" name="city"  value={(formData as any).city} onChange={handleChange} />
+                  <InputField label="Phone" name="phone"  value={(formData as any).phone} onChange={handleChange} />
+                  <InputField label="Email" name="email" type="email" value={(formData as any).email} onChange={handleChange} />
+                </div>
                 <InputField label="Google Maps URL" name="google_maps_url" type="url"  value={(formData as any).google_maps_url} onChange={handleChange} />
                 <div className="space-y-2">
                   <Label htmlFor="photo_urls">Photo URLs (comma separated)</Label>
@@ -281,6 +294,8 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                   <div className="space-y-2 col-span-2 border-t pt-4 mt-2">
                     <h4 className="text-sm font-medium mb-2">PMS Integrations</h4>
                   </div>
+                  <InputField label="Beds24 Property ID" name="beds24_property_id" type="number" value={(formData as any).beds24_property_id} onChange={handleChange} />
+                  <InputField label="Beds24 Room ID" name="beds24_room_id" type="number" value={(formData as any).beds24_room_id} onChange={handleChange} />
                   <InputField label="PriceLabs ID" name="pricelabs_id"  value={(formData as any).pricelabs_id} onChange={handleChange} />
                   <InputField label="Turno ID" name="turno_id"  value={(formData as any).turno_id} onChange={handleChange} />
                   <InputField label="Airbnb ID" name="airbnb_id"  value={(formData as any).airbnb_id} onChange={handleChange} />

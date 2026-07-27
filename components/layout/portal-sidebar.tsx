@@ -20,6 +20,8 @@ import {
   X,
   ClipboardList,
   Link2,
+  Home,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
@@ -213,21 +215,33 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
               <li>
                 <Link
                   href="/admin/villas"
-                  onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     pathname.startsWith('/admin/villas')
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white'
-                  )}
+                      ? 'bg-taksu-bamboo text-taksu-forest'
+                      : 'text-white hover:bg-taksu-jungle hover:text-white'
+                  }`}
                 >
-                  <Building2
-                    className={cn(
-                      'h-4 w-4 shrink-0',
-                      pathname.startsWith('/admin/villas') ? 'text-taksu-bamboo' : 'text-white/40'
-                    )}
+                  <Home className={`h-4 w-4 flex-shrink-0 ${
+                      pathname.startsWith('/admin/villas') ? 'text-taksu-forest' : 'text-white/70 group-hover:text-white'
+                    }`} 
                   />
-                  <span>Admin: Villas</span>
+                  Properties
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/logs"
+                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname.startsWith('/admin/logs')
+                      ? 'bg-taksu-bamboo text-taksu-forest'
+                      : 'text-white hover:bg-taksu-jungle hover:text-white'
+                  }`}
+                >
+                  <Activity className={`h-4 w-4 flex-shrink-0 ${
+                      pathname.startsWith('/admin/logs') ? 'text-taksu-forest' : 'text-white/70 group-hover:text-white'
+                    }`} 
+                  />
+                  API Logs
                 </Link>
               </li>
               <li>

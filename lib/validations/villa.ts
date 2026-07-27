@@ -41,8 +41,26 @@ export const villaSchema = z.object({
   airbnb_id: z.string().optional().nullable(),
   booking_com_id: z.string().optional().nullable(),
   hostaway_listing_id: z.number().int().optional().nullable(),
+  beds24_property_id: z.number().int().optional().nullable(),
+  beds24_room_id: z.number().int().optional().nullable(),
   wifi_network: z.string().optional().nullable(),
   wifi_password: z.string().optional().nullable(),
+
+  // Beds24 Auto-Imported Fields
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  postcode: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  beds24_property_type: z.string().optional().nullable(),
+  check_in_start: z.string().optional().nullable(),
+  check_in_end: z.string().optional().nullable(),
+  check_out_end: z.string().optional().nullable(),
 
   // Ownership & Links
   phase: z.number().int().default(1),

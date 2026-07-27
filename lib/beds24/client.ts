@@ -10,11 +10,38 @@ const BEDS24_API_URL = 'https://api.beds24.com/v2';
  *   Tokens are always loaded from the DB before use.
  * - Token refresh uses a per-request lock via a module-level Promise to avoid race conditions
  *   when two requests simultaneously receive a 401.
+ * - Beds24 sometimes returns 500 "Could not process request" for expired tokens instead of 401.
+ *   The request() function detects this and attempts a refresh automatically.
  * - All API errors are logged with full context before being re-thrown.
  */
 
 // Module-level refresh lock to prevent simultaneous token refresh race conditions
 let refreshPromise: Promise<string> | null = null;
+
+export async function logApiCall(
+  direction: 'inbound' | 'outbound',
+  endpoint: string,
+  payload: any,
+  status: number | null,
+  responseBody: any,
+  errorMessage: string | null
+) {
+  try {
+    const supabase = (await createServerSupabaseClient()) as any;
+    await supabase.from('api_logs').insert({
+      service: 'beds24',
+      direction,
+      endpoint,
+      payload,
+      response_status: status,
+      response_body: typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody),
+      error_message: errorMessage,
+    });
+  } catch (err) {
+    console.error('[Beds24] Failed to save API log:', err);
+  }
+}
+
 
 async function loadCredentials(): Promise<{ token: string; refreshToken: string; id: string } | null> {
   const supabase = (await createServerSupabaseClient()) as any;
@@ -81,7 +108,10 @@ async function doRefreshToken(refreshToken: string, credentialId: string): Promi
 /**
  * Core authenticated request method.
  * Loads credentials from DB on each call (no in-memory cache).
- * Handles 401 with token refresh (with race condition protection) and 429 with backoff.
+ * Handles:
+ *  - 401: token refresh + retry (race-condition safe)
+ *  - 429: backoff + retry
+ *  - 500 "Could not process": Beds24's non-standard way of saying "token expired" — auto-refresh + retry
  */
 async function request(
   endpoint: string,
@@ -105,33 +135,71 @@ async function request(
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  console.log(`[Beds24] → ${options.method || 'GET'} ${endpoint} (attempt ${attempt + 1})`);
+  console.log(`[Beds24] -> ${options.method || 'GET'} ${endpoint} (attempt ${attempt + 1})`);
 
-  let response = await fetch(`${BEDS24_API_URL}${endpoint}`, { ...options, headers });
+  const loggedFetch = async (url: string, fetchOptions: RequestInit) => {
+    const res = await fetch(url, fetchOptions);
+    let bodyText = '';
+    try { bodyText = await res.text(); } catch { /* ignore */ }
+    
+    // Parse JSON if possible for prettier logging
+    let parsedBody: any = bodyText;
+    try { parsedBody = JSON.parse(bodyText); } catch { /* ignore */ }
+    
+    // Determine payload
+    let parsedPayload: any = fetchOptions.body;
+    if (typeof fetchOptions.body === 'string') {
+      try { parsedPayload = JSON.parse(fetchOptions.body); } catch { /* ignore */ }
+    }
+    
+    await logApiCall(
+      'outbound',
+      url.replace(BEDS24_API_URL, ''),
+      parsedPayload,
+      res.status,
+      parsedBody,
+      !res.ok ? `HTTP ${res.status} ${res.statusText}` : null
+    );
+    
+    // Create a new Response object because we consumed the stream with .text()
+    return new Response(bodyText, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers
+    });
+  };
 
-  // --- Handle token expiry (401) ---
-  if (response.status === 401) {
-    console.warn(`[Beds24] 401 Unauthorized on ${endpoint}. Attempting token refresh.`);
-    // Use a shared promise to prevent multiple simultaneous refresh calls (race condition fix)
+  let response = await loggedFetch(`${BEDS24_API_URL}${endpoint}`, { ...options, headers });
+
+  // ── Shared token-refresh helper (shared promise = no race conditions) ────────
+  const attemptRefresh = async (): Promise<string> => {
     if (!refreshPromise) {
       refreshPromise = doRefreshToken(credentials.refreshToken, credentials.id).finally(() => {
         refreshPromise = null;
       });
     }
+    return refreshPromise;
+  };
+
+  const reconnectMsg =
+    'Your Beds24 session has expired. Please reconnect via Admin -> Integrations -> Beds24 using a new Invite Code.';
+
+  // --- Handle token expiry (401) ---
+  if (response.status === 401) {
+    console.warn(`[Beds24] 401 Unauthorized on ${endpoint}. Attempting token refresh.`);
     let newToken: string;
     try {
-      newToken = await refreshPromise;
-    } catch (err) {
-      console.error('[Beds24] Token refresh failed, cannot retry request:', err);
-      throw err;
+      newToken = await attemptRefresh();
+    } catch (err: any) {
+      console.error('[Beds24] Token refresh failed after 401:', err);
+      throw new Error(reconnectMsg);
     }
-    // Retry with the fresh token
     headers['token'] = newToken;
-    response = await fetch(`${BEDS24_API_URL}${endpoint}`, { ...options, headers });
+    response = await loggedFetch(`${BEDS24_API_URL}${endpoint}`, { ...options, headers });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`[Beds24] Request still failing after token refresh (${response.status}):`, errText);
+      console.error(`[Beds24] Still failing after token refresh (${response.status}):`, errText);
       throw new Error(`Beds24 API Error after token refresh: ${response.status} ${response.statusText}`);
     }
   }
@@ -145,11 +213,41 @@ async function request(
     return request(endpoint, options, attempt + 1);
   }
 
+  // --- Handle 500 that may signal a stale/expired token ───────────────────────
+  // Beds24 returns 500 "Could not process request" instead of 401 for expired tokens.
+  // On the first attempt, try a refresh. If the refresh also fails, ask user to reconnect.
+  if (response.status === 500 && attempt === 0) {
+    const errText = await response.text();
+    let errBody: any = {};
+    try { errBody = JSON.parse(errText); } catch { /* ignore */ }
+
+    const looksLikeTokenError =
+      String(errBody?.error ?? '').toLowerCase().includes('could not process') ||
+      String(errBody?.error ?? '').toLowerCase().includes('token') ||
+      errBody?.code === 500;
+
+    if (looksLikeTokenError) {
+      console.warn(`[Beds24] 500 on ${endpoint} — likely stale token, attempting refresh.`);
+      try {
+        const newToken = await attemptRefresh();
+        headers['token'] = newToken;
+        return request(endpoint, { ...options, headers }, attempt + 1);
+      } catch (refreshErr: any) {
+        console.error('[Beds24] Refresh token also expired:', refreshErr);
+        throw new Error(reconnectMsg);
+      }
+    }
+
+    // Genuine server error from Beds24
+    console.error(`[Beds24] API Error (500) on ${endpoint}:`, errText);
+    throw new Error(`Beds24 API Error: 500 Internal Server Error -- ${errText}`);
+  }
+
   // --- Handle other errors ---
   if (!response.ok) {
     const errText = await response.text();
     console.error(`[Beds24] API Error (${response.status}) on ${endpoint}:`, errText);
-    throw new Error(`Beds24 API Error: ${response.status} ${response.statusText} — ${errText}`);
+    throw new Error(`Beds24 API Error: ${response.status} ${response.statusText} -- ${errText}`);
   }
 
   // 204 No Content
@@ -158,11 +256,11 @@ async function request(
   }
 
   const result = await response.json();
-  console.log(`[Beds24] ← ${response.status} OK for ${endpoint}`);
+  console.log(`[Beds24] <- ${response.status} OK for ${endpoint}`);
   return result;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// --- Public API ---------------------------------------------------------------
 
 /**
  * Exchange an Invite Code for long-lived tokens.
@@ -171,7 +269,7 @@ async function request(
 export async function setupBeds24Connection(inviteCode: string): Promise<boolean> {
   const response = await fetch(`${BEDS24_API_URL}/authentication/setup`, {
     method: 'GET',
-    headers: { inviteCode },
+    headers: { code: inviteCode },
   });
 
   if (!response.ok) {
@@ -198,7 +296,7 @@ export async function setupBeds24Connection(inviteCode: string): Promise<boolean
 
 /** Fetch all properties for this Beds24 account */
 export async function getBeds24Properties(): Promise<any[]> {
-  const result = await request('/inventory/properties');
+  const result = await request('/properties');
   return Array.isArray(result) ? result : (result?.data ?? []);
 }
 
@@ -206,6 +304,77 @@ export async function getBeds24Properties(): Promise<any[]> {
 export async function getBeds24Rooms(propertyId: number): Promise<any[]> {
   const result = await request(`/inventory/rooms?propertyId=${propertyId}`);
   return Array.isArray(result) ? result : (result?.data ?? []);
+}
+
+/**
+ * Fetch bookings from Beds24, optionally filtered by property and date range.
+ * dateFrom / dateTo filter by arrival date.
+ */
+export async function getBeds24Bookings(options: {
+  propertyId?: number;
+  dateFrom?: string; // YYYY-MM-DD
+  dateTo?: string;   // YYYY-MM-DD
+  includeStatuses?: string[];
+} = {}): Promise<any[]> {
+  const params = new URLSearchParams();
+  if (options.propertyId) params.set('propertyId', String(options.propertyId));
+  if (options.dateFrom)   params.set('dateFrom', options.dateFrom);
+  if (options.dateTo)     params.set('dateTo',   options.dateTo);
+  const statuses = options.includeStatuses ?? ['0', '1', '2', '3', '9'];
+  params.set('includeInactive', 'true');
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const result = await request(`/bookings${qs}`);
+  const all = Array.isArray(result) ? result : (result?.data ?? []);
+
+  return all.filter((b: any) => statuses.includes(String(b.status ?? '')));
+}
+
+/**
+ * Fetch calendar availability for a property/room between two dates.
+ */
+export async function getBeds24Availability(options: {
+  propertyId: number;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+  roomId?: number;
+}): Promise<any[]> {
+  const params = new URLSearchParams({
+    propertyId: String(options.propertyId),
+    startDate:  options.startDate,
+    endDate:    options.endDate,
+  });
+  if (options.roomId) params.set('roomId', String(options.roomId));
+
+  const result = await request(`/inventory/availability?${params.toString()}`);
+  return Array.isArray(result) ? result : (result?.data ?? []);
+}
+
+/**
+ * Block a range of dates on the Beds24 calendar (create a maintenance block).
+ */
+export async function blockBeds24Calendar(options: {
+  propertyId: number;
+  roomId: number;
+  arrival: string;   // YYYY-MM-DD
+  departure: string; // YYYY-MM-DD
+  notes?: string;
+}): Promise<number | null> {
+  const result = await request('/bookings', {
+    method: 'POST',
+    body: JSON.stringify([{
+      propertyId: options.propertyId,
+      roomId:     options.roomId,
+      arrival:    options.arrival,
+      departure:  options.departure,
+      status:     '9', // BLOCKED
+      firstName:  'Taksu',
+      lastName:   'Block',
+      notes:      options.notes ?? 'Blocked via Taksu Owner Portal',
+    }]),
+  });
+  if (Array.isArray(result) && result[0]?.id) return result[0].id as number;
+  return null;
 }
 
 /**
@@ -223,7 +392,6 @@ export async function pushBookingToBeds24(payload: {
   price?: number;
   notes?: string;
 }): Promise<number | null> {
-  // Validate required fields before sending
   if (!payload.arrival || !payload.departure) {
     throw new Error('[Beds24] Cannot push booking without arrival and departure dates');
   }
@@ -233,10 +401,9 @@ export async function pushBookingToBeds24(payload: {
 
   const result = await request('/bookings', {
     method: 'POST',
-    body: JSON.stringify([payload]), // Beds24 v2 expects an array
+    body: JSON.stringify([payload]),
   });
 
-  // Beds24 returns an array of result objects, each with an `id`
   if (Array.isArray(result) && result[0]?.id) {
     return result[0].id as number;
   }

@@ -46,6 +46,7 @@ export function VillaList({ initialVillas, owners, pools }: VillaListProps) {
               <th className="px-6 py-4 font-medium">Name</th>
               <th className="px-6 py-4 font-medium">Owner</th>
               <th className="px-6 py-4 font-medium">Pool</th>
+              <th className="px-6 py-4 font-medium">Integration</th>
               <th className="px-6 py-4 font-medium">Bedrooms</th>
               <th className="px-6 py-4 text-right font-medium">Actions</th>
             </tr>
@@ -63,7 +64,25 @@ export function VillaList({ initialVillas, owners, pools }: VillaListProps) {
                 <td className="px-6 py-4">
                   {villa.pool ? <Badge variant="outline">{villa.pool.name}</Badge> : '-'}
                 </td>
-                <td className="px-6 py-4">{villa.bedrooms} BR</td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-1 items-start">
+                    {villa.beds24_property_id ? (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Beds24</Badge>
+                    ) : villa.hostaway_listing_id ? (
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-none">Hostaway</Badge>
+                    ) : (
+                      <span className="text-taksu-sage/50 text-xs italic">None</span>
+                    )}
+                    {villa.last_synced_at && (
+                      <span className="text-[10px] text-taksu-sage/60 whitespace-nowrap">
+                        {new Date(villa.last_synced_at).toLocaleString(undefined, { 
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">{villa.bedrooms || 0} BR</td>
                 <td className="px-6 py-4 text-right">
                   <Button
                     variant="ghost"

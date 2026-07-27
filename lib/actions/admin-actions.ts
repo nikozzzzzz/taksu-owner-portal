@@ -159,3 +159,19 @@ export async function updateRequestStatus(requestId: string, newStatus: string) 
   revalidatePath(`/requests/${requestId}`);
   return { success: true };
 }
+
+// ─── API Logs ───────────────────────────────────────────────────────────────
+
+export async function getApiLogs(limit = 100) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('api_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+    
+  if (error) throw new Error(error.message);
+  return data;
+}

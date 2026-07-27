@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+import { logApiCall } from '@/lib/beds24/client';
+
 // Beds24 sends a secret in a header when Auto Actions are configured.
 // Set BEDS24_WEBHOOK_SECRET in .env.local and configure the same value
 // in Beds24 > Settings > Notifications > HTTP Requests > Secret Header.
@@ -39,12 +41,13 @@ function mapB24StatusToTaksu(b24Status: string | number): 'confirmed' | 'cancell
 
 export async function POST(req: NextRequest) {
   // ── 1. Authenticate the webhook request ─────────────────────────────────────
+  let authFailed = false;
   if (WEBHOOK_SECRET) {
     const incomingSecret =
       req.headers.get('x-beds24-secret') || req.headers.get('authorization');
     if (!incomingSecret || incomingSecret !== WEBHOOK_SECRET) {
       console.warn('[Webhook/beds24] Rejected request: invalid or missing secret.');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      authFailed = true;
     }
   } else {
     // Warn loudly in logs but don't hard-fail to support initial setup without a secret
@@ -54,12 +57,19 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. Parse payload ─────────────────────────────────────────────────────────
-  let rawPayload: unknown;
+  let rawPayload: unknown = null;
   try {
     rawPayload = await req.json();
   } catch {
     console.error('[Webhook/beds24] Failed to parse JSON body.');
+    await logApiCall('inbound', '/api/webhooks/beds24', null, 400, { error: 'Invalid JSON' }, 'Failed to parse JSON body');
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  await logApiCall('inbound', '/api/webhooks/beds24', rawPayload, authFailed ? 401 : 200, null, authFailed ? 'Unauthorized webhook' : null);
+
+  if (authFailed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const bookings = Array.isArray(rawPayload) ? rawPayload : [rawPayload];

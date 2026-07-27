@@ -22,7 +22,7 @@ export default async function CalendarPage({
   const resolvedSearchParams = await searchParams;
   
   // 1. Fetch available villas based on RBAC
-  let query = supabase.from('villas').select('id, display_name, internal_code').in('status', ['active', 'paused']);
+  let query = supabase.from('villas').select('id, display_name, internal_code').in('status', ['active', 'paused', 'pre_launch']);
   if (owner.role !== 'admin' && owner.role !== 'root') {
     query = query.eq('owner_id', owner.id);
   }
