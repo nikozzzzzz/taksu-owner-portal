@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 
 const BEDS24_API_URL = 'https://api.beds24.com/v2';
 
@@ -18,6 +18,9 @@ const BEDS24_API_URL = 'https://api.beds24.com/v2';
 // Module-level refresh lock to prevent simultaneous token refresh race conditions
 let refreshPromise: Promise<string> | null = null;
 
+import fs from 'fs/promises';
+import path from 'path';
+
 export async function logApiCall(
   direction: 'inbound' | 'outbound',
   endpoint: string,
@@ -27,8 +30,9 @@ export async function logApiCall(
   errorMessage: string | null
 ) {
   try {
-    const supabase = (await createServerSupabaseClient()) as any;
-    await supabase.from('api_logs').insert({
+    const logEntry = {
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
       service: 'beds24',
       direction,
       endpoint,
@@ -36,9 +40,15 @@ export async function logApiCall(
       response_status: status,
       response_body: typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody),
       error_message: errorMessage,
-    });
+    };
+    
+    const logsDir = path.join(process.cwd(), 'logs');
+    await fs.mkdir(logsDir, { recursive: true });
+    
+    const logFile = path.join(logsDir, 'beds24_api_logs.jsonl');
+    await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
   } catch (err) {
-    console.error('[Beds24] Failed to save API log:', err);
+    console.error('[Beds24] Failed to save API log to file:', err);
   }
 }
 
@@ -113,7 +123,7 @@ async function doRefreshToken(refreshToken: string, credentialId: string): Promi
  *  - 429: backoff + retry
  *  - 500 "Could not process": Beds24's non-standard way of saying "token expired" — auto-refresh + retry
  */
-async function request(
+export async function request(
   endpoint: string,
   options: RequestInit = {},
   attempt = 0
@@ -388,7 +398,7 @@ export async function pushBookingToBeds24(payload: {
   departure: string; // YYYY-MM-DD
   firstName: string;
   lastName: string;
-  status: string;    // '1' = confirmed, '0' = cancelled
+  status: string;    // 'confirmed' | 'cancelled' | 'black' | 'new'
   price?: number;
   notes?: string;
 }): Promise<number | null> {
@@ -404,9 +414,29 @@ export async function pushBookingToBeds24(payload: {
     body: JSON.stringify([payload]),
   });
 
-  if (Array.isArray(result) && result[0]?.id) {
-    return result[0].id as number;
+  if (Array.isArray(result) && result[0]) {
+    const b24 = result[0];
+    const createdId = b24.id || b24.new?.id;
+
+    if (b24.success === false && b24.errors?.length > 0) {
+      const errorMsg = b24.errors[0]?.message || 'Unknown Beds24 error';
+      throw new Error(`Beds24 Error: ${errorMsg}`);
+    }
+    
+    if (createdId) {
+      if (b24.success === false && b24.warnings?.length > 0) {
+        console.warn('[Beds24] Booking created but with warnings:', b24.warnings);
+      }
+      return createdId as number;
+    }
+    
+    // If it failed and no ID was created
+    if (b24.success === false) {
+       const msg = b24.warnings?.[0]?.message || 'Unknown Beds24 error';
+       throw new Error(`Beds24 Error: ${msg}`);
+    }
   }
+  
   console.warn('[Beds24] pushBooking response did not contain an ID:', result);
   return null;
 }
@@ -425,15 +455,28 @@ export async function updateBeds24Booking(
     price?: number;
   }
 ): Promise<void> {
-  await request('/bookings', {
+  const result = await request('/bookings', {
     method: 'POST', // Beds24 v2 uses POST with ID present = update
     body: JSON.stringify([{ id: beds24BookingId, ...updates }]),
   });
+  
+  if (Array.isArray(result) && result[0]) {
+    const b24 = result[0];
+    if (b24.success === false && b24.errors?.length > 0) {
+      const errorMsg = b24.errors[0]?.message || 'Unknown Beds24 error';
+      throw new Error(`Beds24 Error: ${errorMsg}`);
+    }
+    
+    if (b24.success === false && (!b24.id && !b24.new?.id)) {
+      const errorMsg = b24.warnings?.[0]?.message || 'Unknown Beds24 error';
+      throw new Error(`Beds24 Error: ${errorMsg}`);
+    }
+  }
 }
 
 /**
- * Cancel a booking in Beds24 (status = '0').
+ * Cancel a booking in Beds24.
  */
 export async function cancelBeds24Booking(beds24BookingId: number): Promise<void> {
-  await updateBeds24Booking(beds24BookingId, { status: '0' });
+  await updateBeds24Booking(beds24BookingId, { status: 'cancelled' });
 }

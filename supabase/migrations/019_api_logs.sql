@@ -28,4 +28,10 @@ USING (
   )
 );
 
+CREATE POLICY "Allow all inserts to API logs" 
+ON api_logs 
+FOR INSERT 
+WITH CHECK (true);
+
+
 -- We only insert from the backend using service_role, so no insert policy is needed for the frontend.

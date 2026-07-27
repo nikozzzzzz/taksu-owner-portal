@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { requireOwner } from '@/lib/auth/middleware';
-import { getVillaBookings } from '@/lib/data/calendar';
+import { getVillaBookings, getVillaPrices } from '@/lib/data/calendar';
 import { MonthCalendar } from '@/components/calendar/month-calendar';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
@@ -41,13 +41,15 @@ export default async function CalendarPage({
     villaId = allowedVillas[0]?.id;
   }
 
-  // 3. Fetch initial bookings
+  // 3. Fetch initial bookings and prices
   let initialBookings: any[] = [];
+  let initialPrices: any[] = [];
   if (villaId) {
     const today = new Date();
     const startStr = startOfMonth(today).toISOString().split('T')[0];
     const endStr = endOfMonth(today).toISOString().split('T')[0];
     initialBookings = await getVillaBookings(villaId, startStr, endStr);
+    initialPrices = await getVillaPrices(villaId, startStr, endStr);
   }
 
   // Server action to fetch bookings dynamically for client component
@@ -55,6 +57,13 @@ export default async function CalendarPage({
     'use server';
     if (!villaId) return [];
     return getVillaBookings(villaId, start, end);
+  }
+
+  // Server action to fetch prices dynamically
+  async function fetchPricesForMonth(start: string, end: string) {
+    'use server';
+    if (!villaId) return [];
+    return getVillaPrices(villaId, start, end);
   }
 
   return (
@@ -83,7 +92,9 @@ export default async function CalendarPage({
           <MonthCalendar 
             villaId={villaId}
             initialBookings={initialBookings} 
-            fetchBookings={fetchBookingsForMonth} 
+            fetchBookings={fetchBookingsForMonth}
+            initialPrices={initialPrices}
+            fetchPrices={fetchPricesForMonth}
           />
         ) : (
           <div className="p-12 text-center text-taksu-sage bg-white rounded-xl border border-border">

@@ -67,7 +67,12 @@ export function VillaList({ initialVillas, owners, pools }: VillaListProps) {
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-1 items-start">
                     {villa.beds24_property_id ? (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Beds24</Badge>
+                      <>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Beds24</Badge>
+                        {!villa.beds24_room_id && (
+                          <Badge variant="destructive" className="text-[10px] whitespace-nowrap">Missing Room ID</Badge>
+                        )}
+                      </>
                     ) : villa.hostaway_listing_id ? (
                       <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-none">Hostaway</Badge>
                     ) : (

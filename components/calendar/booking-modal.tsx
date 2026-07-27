@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +16,13 @@ import { Loader2 } from 'lucide-react';
 interface BookingModalProps {
   villaId: string;
   booking: CalendarBooking | null;
-  selectedDate: Date | null;
+  selectedRange: { start: Date, end: Date } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
 }
 
-export function BookingModal({ villaId, booking, selectedDate, open, onOpenChange, onSave }: BookingModalProps) {
+export function BookingModal({ villaId, booking, selectedRange, open, onOpenChange, onSave }: BookingModalProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     check_in_date: '',
@@ -42,17 +43,17 @@ export function BookingModal({ villaId, booking, selectedDate, open, onOpenChang
         net_to_villa_usd: booking.net_to_villa_usd,
         channel: booking.channel
       });
-    } else if (selectedDate) {
+    } else if (selectedRange) {
       setFormData({
-        check_in_date: format(selectedDate, 'yyyy-MM-dd'),
-        check_out_date: format(addDays(selectedDate, 1), 'yyyy-MM-dd'),
+        check_in_date: format(selectedRange.start, 'yyyy-MM-dd'),
+        check_out_date: format(selectedRange.end, 'yyyy-MM-dd'),
         guest_full_name: '',
         guest_country: '',
         net_to_villa_usd: 0,
         channel: 'direct'
       });
     }
-  }, [booking, selectedDate, open]);
+  }, [booking, selectedRange, open]);
 
   if (!open) return null;
 
@@ -64,16 +65,33 @@ export function BookingModal({ villaId, booking, selectedDate, open, onOpenChang
     e.preventDefault();
     setLoading(true);
     try {
+      let result;
       if (isEditing) {
-        await updateBooking(booking.id, villaId, formData);
+        result = await updateBooking(booking.id, villaId, formData);
       } else {
-        await createBooking(villaId, formData);
+        result = await createBooking(villaId, formData);
       }
+      
       onSave();
       onOpenChange(false);
-    } catch (err) {
+      
+      if (result.beds24_sync_error) {
+        toast.error('Beds24 Sync Failed', {
+          description: result.beds24_sync_error,
+          action: {
+            label: 'View Logs',
+            onClick: () => window.open('/admin/logs', '_blank')
+          },
+          duration: 10000,
+        });
+      } else {
+        toast.success('Saved Successfully', {
+          description: 'The booking was saved and synced with Beds24.'
+        });
+      }
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to save booking');
+      toast.error('Failed to save booking', { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -83,12 +101,27 @@ export function BookingModal({ villaId, booking, selectedDate, open, onOpenChang
     if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
     setLoading(true);
     try {
-      await cancelBooking(booking!.id, villaId);
+      const result = await cancelBooking(booking!.id, villaId);
       onSave();
       onOpenChange(false);
-    } catch (err) {
+      
+      if (result.beds24_sync_error) {
+        toast.error('Beds24 Cancel Failed', {
+          description: result.beds24_sync_error,
+          action: {
+            label: 'View Logs',
+            onClick: () => window.open('/admin/logs', '_blank')
+          },
+          duration: 10000,
+        });
+      } else {
+        toast.success('Cancelled Successfully', {
+          description: 'The booking was cancelled locally and in Beds24.'
+        });
+      }
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to cancel booking');
+      toast.error('Failed to cancel booking', { description: err.message });
     } finally {
       setLoading(false);
     }

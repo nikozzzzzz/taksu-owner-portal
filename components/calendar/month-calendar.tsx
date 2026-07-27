@@ -1,26 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, isWithinInterval, parseISO, addDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CalendarBooking } from '@/lib/data/calendar';
+import { CalendarBooking, CalendarPrice } from '@/lib/data/calendar';
 import { BookingEvent } from './booking-event';
 import { BookingModal } from './booking-modal';
+import { PriceModal } from './price-modal';
 import { ChannelLegend } from './channel-legend';
 
 interface MonthCalendarProps {
   villaId: string;
   initialBookings: CalendarBooking[];
   fetchBookings: (start: string, end: string) => Promise<CalendarBooking[]>;
+  initialPrices: CalendarPrice[];
+  fetchPrices: (start: string, end: string) => Promise<CalendarPrice[]>;
 }
 
-export function MonthCalendar({ villaId, initialBookings, fetchBookings }: MonthCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date()); // Actually in a real app you'd likely default to the current month or the latest statement month. For now, new Date() is fine.
+export function MonthCalendar({ villaId, initialBookings, fetchBookings, initialPrices, fetchPrices }: MonthCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<CalendarBooking[]>(initialBookings);
+  const [prices, setPrices] = useState<CalendarPrice[]>(initialPrices);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
-  const [newBookingDate, setNewBookingDate] = useState<Date | null>(null);
+  
+  // Multi-select & Context Menu states
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+
+  // Close context menu on global click
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -47,15 +63,63 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
     try {
       const startStr = startOfMonth(date).toISOString().split('T')[0];
       const endStr = endOfMonth(date).toISOString().split('T')[0];
-      const data = await fetchBookings(startStr, endStr);
+      const [data, priceData] = await Promise.all([
+        fetchBookings(startStr, endStr),
+        fetchPrices(startStr, endStr)
+      ]);
       setBookings(data);
+      setPrices(priceData);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDateClick = (day: Date, e: React.MouseEvent) => {
+    if (contextMenu) setContextMenu(null);
+    
+    if (e.shiftKey && selectedDates.length > 0) {
+      // Select range from last selected to current
+      const lastSelected = selectedDates[selectedDates.length - 1];
+      const rangeStart = lastSelected < day ? lastSelected : day;
+      const rangeEnd = lastSelected < day ? day : lastSelected;
+      const range = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+      
+      const newSelection = [...selectedDates];
+      range.forEach(d => {
+        if (!newSelection.some(sd => isSameDay(sd, d))) {
+          newSelection.push(d);
+        }
+      });
+      setSelectedDates(newSelection);
+    } else if (e.ctrlKey || e.metaKey) {
+      // Toggle single date
+      const exists = selectedDates.some(sd => isSameDay(sd, day));
+      if (exists) {
+        setSelectedDates(selectedDates.filter(sd => !isSameDay(sd, day)));
+      } else {
+        setSelectedDates([...selectedDates, day]);
+      }
+    } else {
+      // Single select
+      setSelectedDates([day]);
+    }
+  };
+
+  const handleContextMenu = (day: Date, e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // If clicking on an unselected date, select it first
+    let currentSelection = selectedDates;
+    if (!selectedDates.some(sd => isSameDay(sd, day))) {
+      currentSelection = [day];
+      setSelectedDates([day]);
+    }
+
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border p-4 sm:p-6 animate-in">
+    <div className="bg-white rounded-xl shadow-sm border border-border p-4 sm:p-6 animate-in relative">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-serif text-2xl font-semibold text-taksu-forest">
@@ -84,28 +148,42 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
         {days.map(day => {
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isToday = isSameDay(day, new Date());
+          const isSelected = selectedDates.some(sd => isSameDay(sd, day));
           
           // Find bookings for this day
           const dayBookings = bookings.filter(b => {
             const start = parseISO(b.check_in_date);
             const end = parseISO(b.check_out_date);
-            return isWithinInterval(day, { start, end }) && !isSameDay(day, end); // Check out day is not occupied
+            return isWithinInterval(day, { start, end }) && !isSameDay(day, end);
           });
 
           return (
             <div 
               key={day.toISOString()} 
-              className={`min-h-[100px] bg-white p-1 relative group cursor-pointer ${!isCurrentMonth ? 'opacity-40' : ''}`}
-              onClick={() => setNewBookingDate(day)}
+              className={`min-h-[100px] p-1 relative group cursor-pointer transition-colors ${!isCurrentMonth ? 'opacity-40 bg-gray-50' : 'bg-white'} ${isSelected ? 'ring-2 ring-inset ring-taksu-terracotta/50 bg-taksu-bamboo/20' : ''}`}
+              onClick={(e) => handleDateClick(day, e)}
+              onContextMenu={(e) => handleContextMenu(day, e)}
             >
-              {/* Visual hover overlay — purely decorative, no pointer events */}
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0 pointer-events-none" 
-              />
+              {/* Visual hover overlay */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-taksu-bamboo z-0 pointer-events-none" />
+              
               <div className="flex justify-between items-start relative z-10">
                 <span className={`text-sm font-medium p-1.5 rounded-full w-7 h-7 flex items-center justify-center ${isToday ? 'bg-taksu-terracotta text-white' : 'text-taksu-forest'}`}>
                   {format(day, 'd')}
                 </span>
+                
+                {(() => {
+                  const dayPrice = prices.find(p => p.date === format(day, 'yyyy-MM-dd'));
+                  if (dayPrice) {
+                    if (dayPrice.price_usd != null) {
+                      return <span className="text-xs font-semibold text-gray-500 mt-1 mr-1">${dayPrice.price_usd}</span>;
+                    }
+                    if (dayPrice.price_idr != null) {
+                      return <span className="text-xs font-semibold text-gray-500 mt-1 mr-1">Rp{(dayPrice.price_idr / 1000).toFixed(0)}k</span>;
+                    }
+                  }
+                  return null;
+                })()}
               </div>
               
               <div className="mt-1 space-y-1 relative h-full">
@@ -113,7 +191,6 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
                   const start = parseISO(booking.check_in_date);
                   const end = parseISO(booking.check_out_date);
                   const isStart = isSameDay(day, start);
-                  // Since we don't render the bar on check out day, the end visual is the day before check out
                   const dayBeforeEnd = new Date(end);
                   dayBeforeEnd.setDate(dayBeforeEnd.getDate() - 1);
                   const isEndVisual = isSameDay(day, dayBeforeEnd);
@@ -124,7 +201,10 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
                         booking={booking} 
                         isStart={isStart} 
                         isEnd={isEndVisual} 
-                        onClick={setSelectedBooking} 
+                        onClick={(b) => {
+                           setSelectedBooking(b);
+                           setBookingModalOpen(true);
+                        }} 
                       />
                     </div>
                   );
@@ -137,18 +217,69 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings }: Month
 
       <ChannelLegend />
 
+      {/* Context Menu Modal */}
+      {contextMenu && (
+        <div className="fixed inset-0 z-50 overflow-hidden" onContextMenu={e => e.preventDefault()}>
+          <div 
+            className="absolute bg-white border border-border shadow-lg rounded-md min-w-[160px] py-1 text-sm font-medium z-50 animate-in fade-in zoom-in-95 duration-100"
+            style={{ 
+              top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 100 : contextMenu.y), 
+              left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 180 : contextMenu.x) 
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              className="w-full text-left px-3 py-2 hover:bg-taksu-cream transition-colors text-taksu-forest"
+              onClick={() => {
+                setBookingModalOpen(true);
+                setContextMenu(null);
+              }}
+            >
+              Create Booking/Block
+            </button>
+            <button 
+              className="w-full text-left px-3 py-2 hover:bg-taksu-cream transition-colors text-taksu-forest"
+              onClick={() => {
+                setPriceModalOpen(true);
+                setContextMenu(null);
+              }}
+            >
+              Set Nightly Price
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       <BookingModal 
         villaId={villaId}
         booking={selectedBooking} 
-        selectedDate={newBookingDate}
-        open={!!selectedBooking || !!newBookingDate} 
+        selectedRange={selectedDates.length > 0 && !selectedBooking ? {
+          start: selectedDates[0],
+          end: addDays(selectedDates[selectedDates.length - 1], 1)
+        } : null}
+        open={bookingModalOpen} 
         onOpenChange={(open) => {
+          setBookingModalOpen(open);
           if (!open) {
             setSelectedBooking(null);
-            setNewBookingDate(null);
+            setSelectedDates([]);
           }
         }}
         onSave={() => loadBookings(currentDate)}
+      />
+
+      <PriceModal
+        villaId={villaId}
+        selectedDates={selectedDates}
+        open={priceModalOpen}
+        onOpenChange={(open) => {
+          setPriceModalOpen(open);
+          if (!open) {
+            setSelectedDates([]);
+            loadBookings(currentDate); // Reload prices after modal closes
+          }
+        }}
       />
     </div>
   );

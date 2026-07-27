@@ -162,16 +162,35 @@ export async function updateRequestStatus(requestId: string, newStatus: string) 
 
 // ─── API Logs ───────────────────────────────────────────────────────────────
 
+import fs from 'fs';
+import path from 'path';
+
 export async function getApiLogs(limit = 100) {
   await requireAdmin();
-  const supabase = await createServerSupabaseClient();
+  const logFile = path.join(process.cwd(), 'logs', 'beds24_api_logs.jsonl');
   
-  const { data, error } = await supabase
-    .from('api_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-    
-  if (error) throw new Error(error.message);
-  return data;
+  if (!fs.existsSync(logFile)) {
+    return [];
+  }
+  
+  try {
+    const data = fs.readFileSync(logFile, 'utf8');
+    const lines = data.trim().split('\n');
+    const logs = lines
+      .filter(line => line.trim().length > 0)
+      .map(line => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+      
+    // Return latest first
+    return logs.reverse().slice(0, limit);
+  } catch (err) {
+    console.error('Failed to read API logs:', err);
+    return [];
+  }
 }

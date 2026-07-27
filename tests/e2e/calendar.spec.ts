@@ -31,9 +31,9 @@ test.describe('Booking Calendar Flow', () => {
     await expect(villaSelector).toBeVisible();
     
     // 4. Click an empty date in the grid to create a booking
-    // We'll find a date cell. In MonthCalendar, empty dates have a clickable overlay.
-    // Let's just click the first day of the month.
-    await page.getByText('15', { exact: true }).first().click();
+    // We'll right-click the date and then click "Create Booking/Block"
+    await page.getByText('15', { exact: true }).first().click({ button: 'right' });
+    await page.getByText('Create Booking/Block').click();
 
     // 5. Modal should open
     await expect(page.getByRole('dialog')).toBeVisible();

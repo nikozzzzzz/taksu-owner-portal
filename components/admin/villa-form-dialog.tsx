@@ -122,18 +122,21 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     e.preventDefault();
     setLoading(true);
     
-    const payload = {
-      ...formData,
-      owner_id: formData.owner_id || null,
-      pool_id: formData.pool_id || null,
-      slf_issue_date: formData.slf_issue_date || null,
-      slf_expiry_date: formData.slf_expiry_date || null,
-      photo_urls: formData.photo_urls ? formData.photo_urls.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      amenities: formData.amenities ? formData.amenities.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      hostaway_listing_id: formData.hostaway_listing_id ? Number(formData.hostaway_listing_id) : null,
-      beds24_property_id: formData.beds24_property_id ? Number(formData.beds24_property_id) : null,
-      beds24_room_id: formData.beds24_room_id ? Number(formData.beds24_room_id) : null,
-    };
+    const payload: any = { ...formData };
+    
+    // Scrub empty strings to null for all fields to satisfy Zod optional validations
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === '') {
+        payload[key] = null;
+      }
+    });
+
+    // Specific overrides
+    payload.photo_urls = formData.photo_urls ? formData.photo_urls.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    payload.amenities = formData.amenities ? formData.amenities.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    payload.hostaway_listing_id = formData.hostaway_listing_id ? Number(formData.hostaway_listing_id) : null;
+    payload.beds24_property_id = formData.beds24_property_id ? Number(formData.beds24_property_id) : null;
+    payload.beds24_room_id = formData.beds24_room_id ? Number(formData.beds24_room_id) : null;
     
     await onSave(payload);
     setLoading(false);
@@ -295,7 +298,12 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                     <h4 className="text-sm font-medium mb-2">PMS Integrations</h4>
                   </div>
                   <InputField label="Beds24 Property ID" name="beds24_property_id" type="number" value={(formData as any).beds24_property_id} onChange={handleChange} />
-                  <InputField label="Beds24 Room ID" name="beds24_room_id" type="number" value={(formData as any).beds24_room_id} onChange={handleChange} />
+                  <div className="space-y-2">
+                    <InputField label="Beds24 Room ID" name="beds24_room_id" type="number" value={(formData as any).beds24_room_id} onChange={handleChange} />
+                    <p className="text-[11px] text-taksu-sage/80 mt-1 leading-tight">
+                      Find this in Beds24: <strong>Settings &gt; Properties &gt; Rooms &gt; Setup</strong>. This is <strong>not</strong> the Property ID.
+                    </p>
+                  </div>
                   <InputField label="PriceLabs ID" name="pricelabs_id"  value={(formData as any).pricelabs_id} onChange={handleChange} />
                   <InputField label="Turno ID" name="turno_id"  value={(formData as any).turno_id} onChange={handleChange} />
                   <InputField label="Airbnb ID" name="airbnb_id"  value={(formData as any).airbnb_id} onChange={handleChange} />

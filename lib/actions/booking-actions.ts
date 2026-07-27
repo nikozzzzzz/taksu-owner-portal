@@ -49,6 +49,7 @@ export async function createBooking(villaId: string, data: any) {
     .eq('id', villaId)
     .maybeSingle();
 
+  let beds24_sync_error: string | null = null;
   if (villaSettings?.beds24_property_id && villaSettings?.beds24_room_id) {
     try {
       const [guestFirst, ...guestRest] = (data.guest_full_name || 'Guest').trim().split(' ');
@@ -59,21 +60,24 @@ export async function createBooking(villaId: string, data: any) {
         departure: data.check_out_date,
         firstName: guestFirst || 'Guest',
         lastName: guestRest.join(' ') || (['maintenance', 'owner_stay'].includes(data.channel) ? 'Block' : ''),
-        status: ['maintenance', 'owner_stay'].includes(data.channel) ? '9' : '1', // 9 = Blocked, 1 = Confirmed
+        status: ['maintenance', 'owner_stay'].includes(data.channel) ? 'black' : 'confirmed', // 'black' = Blocked, 'confirmed' = Confirmed
         price: totalPaid,
       });
       if (b24BookingId) {
         payload.beds24_booking_id = b24BookingId;
         console.log(`[booking-actions] Created Beds24 booking ID: ${b24BookingId}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       // Non-fatal: log the error but still save the booking locally
+      beds24_sync_error = err.message || 'Failed to sync to Beds24';
       console.error('[booking-actions] Beds24 push failed, saving locally only:', err);
     }
   }
 
   const { error } = await supabase.from('bookings').insert(payload);
   if (error) throw new Error(error.message);
+  
+  return { success: true, beds24_sync_error };
 }
 
 export async function updateBooking(bookingId: string, villaId: string, data: any) {
@@ -98,10 +102,16 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
     channel: data.channel,
   };
 
-  // Fetch the booking to check if it has a Beds24 ID before updating the DB
+  // Fetch the booking and villa to check if it has a Beds24 ID before updating the DB
   const { data: existingBooking } = await supabase
     .from('bookings')
-    .select('beds24_booking_id')
+    .select(`
+      beds24_booking_id,
+      villas (
+        beds24_property_id,
+        beds24_room_id
+      )
+    `)
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -109,6 +119,10 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
   if (error) throw new Error(error.message);
 
   // Outbound sync: push the update to Beds24 if this booking is tracked there
+  const b24PropId = existingBooking?.villas?.beds24_property_id;
+  const b24RoomId = existingBooking?.villas?.beds24_room_id;
+  let beds24_sync_error: string | null = null;
+
   if (existingBooking?.beds24_booking_id) {
     try {
       const [guestFirst, ...guestRest] = (data.guest_full_name || '').trim().split(' ');
@@ -117,15 +131,40 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
         departure: data.check_out_date,
         firstName: guestFirst || undefined,
         lastName: guestRest.join(' ') || undefined,
-        status: ['maintenance', 'owner_stay'].includes(data.channel) ? '9' : '1',
+        status: ['maintenance', 'owner_stay'].includes(data.channel) ? 'black' : 'confirmed',
         price: totalPaid,
       });
       console.log(`[booking-actions] Updated Beds24 booking ID: ${existingBooking.beds24_booking_id}`);
-    } catch (err) {
+    } catch (err: any) {
       // Non-fatal: log but don't fail the local update
+      beds24_sync_error = err.message || 'Failed to sync update to Beds24';
       console.error('[booking-actions] Failed to sync update to Beds24:', err);
     }
+  } else if (b24PropId && b24RoomId) {
+    // Booking was never synced, create it now!
+    try {
+      const [guestFirst, ...guestRest] = (data.guest_full_name || 'Guest').trim().split(' ');
+      const newB24BookingId = await pushBookingToBeds24({
+        propertyId: b24PropId,
+        roomId: b24RoomId,
+        arrival: data.check_in_date,
+        departure: data.check_out_date,
+        firstName: guestFirst || 'Guest',
+        lastName: guestRest.join(' ') || (['maintenance', 'owner_stay'].includes(data.channel) ? 'Block' : ''),
+        status: ['maintenance', 'owner_stay'].includes(data.channel) ? 'black' : 'confirmed',
+        price: totalPaid,
+      });
+      
+      if (newB24BookingId) {
+        await supabase.from('bookings').update({ beds24_booking_id: newB24BookingId }).eq('id', bookingId);
+        console.log(`[booking-actions] Created missing Beds24 booking ID: ${newB24BookingId}`);
+      }
+    } catch (err: any) {
+      beds24_sync_error = err.message || 'Failed to sync new booking to Beds24';
+      console.error('[booking-actions] Beds24 push missing booking failed:', err);
+    }
   }
+  return { success: true, beds24_sync_error };
 }
 
 export async function cancelBooking(bookingId: string, villaId: string) {
@@ -153,19 +192,22 @@ export async function cancelBooking(bookingId: string, villaId: string) {
   // Cancel locally first
   const { error } = await supabase
     .from('bookings')
-    .update({ status: 'cancelled', payout_status: 'cancelled' })
+    .update({ status: 'cancelled' })
     .eq('id', bookingId);
   if (error) throw new Error(error.message);
 
+  let beds24_sync_error: string | null = null;
   // Then sync the cancellation to Beds24 (non-fatal if it fails)
   if (booking.beds24_booking_id) {
     try {
       await cancelBeds24Booking(booking.beds24_booking_id);
       console.log(`[booking-actions] Cancelled Beds24 booking ID: ${booking.beds24_booking_id}`);
-    } catch (err) {
-      console.error('[booking-actions] Failed to cancel in Beds24 (local booking is still cancelled):', err);
+    } catch (err: any) {
+      beds24_sync_error = err.message || 'Failed to cancel booking in Beds24';
+      console.error('[booking-actions] Failed to cancel booking in Beds24 (local booking is still cancelled):', err);
     }
   }
+  return { success: true, beds24_sync_error };
 }
 
 export async function markBookingPayoutReceived(bookingId: string, payoutDate: string) {
@@ -239,3 +281,70 @@ export async function getPendingPayouts(villaId: string) {
   if (error) throw new Error(error.message);
   return data || [];
 }
+
+/**
+ * Set the daily price for a date range in Beds24.
+ * This sets `p1` (Price Row 1) which is typically the default rate.
+ */
+export async function setRoomPrice(villaId: string, fromDate: string, toDate: string, price: number): Promise<{ success: boolean; error?: string }> {
+  const owner = await requireOwner();
+  if (owner.role !== 'admin' && owner.role !== 'root') {
+    throw new Error('Unauthorized');
+  }
+
+  const supabase = (await createServerSupabaseClient()) as any;
+  const { data: villa, error } = await supabase.from('villas').select('beds24_property_id, beds24_room_id').eq('id', villaId).single();
+  
+  if (error || !villa || !villa.beds24_room_id) {
+    throw new Error('Villa or Beds24 mapping not found');
+  }
+
+  try {
+    const { request } = await import('@/lib/beds24/client');
+    const result = await request('/inventory/rooms/calendar', {
+      method: 'POST',
+      body: JSON.stringify([{
+        roomId: villa.beds24_room_id,
+        from: fromDate,
+        to: toDate,
+        data: {
+          p1: price
+        }
+      }])
+    });
+    
+    if (Array.isArray(result) && result[0] && result[0].success === false) {
+      throw new Error(result[0].error || 'Failed to update Beds24 pricing');
+    }
+
+    // Upsert into Supabase for instant UI updates
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    const rowsToUpsert = [];
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      rowsToUpsert.push({
+        villa_id: villaId,
+        date: dateStr,
+        price_idr: null,
+        price_usd: price,
+      });
+    }
+
+    const { error: upsertErr } = await supabase
+      .from('room_prices')
+      .upsert(rowsToUpsert, { onConflict: 'villa_id, date' });
+      
+    if (upsertErr) {
+      console.error('[setRoomPrice] DB Upsert error:', upsertErr);
+      // We still succeed if Beds24 succeeded, just log it.
+    }
+    
+    return { success: true };
+  } catch (err: any) {
+    console.error('[setRoomPrice]', err);
+    return { success: false, error: err.message };
+  }
+}
+

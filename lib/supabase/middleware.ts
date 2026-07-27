@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes — redirect to login if not authenticated
-  const publicRoutes = ['/login', '/signup', '/reset-password', '/setup-account', '/api/auth', '/api/webhooks'];
+  const publicRoutes = ['/login', '/signup', '/reset-password', '/setup-account', '/api/auth', '/api/webhooks', '/api/test-beds24'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {
