@@ -2,6 +2,54 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+
+const updateProfileSchema = z.object({
+  full_name: z.string().min(2, 'Name must be at least 2 characters'),
+  date_of_birth: z.string().optional().nullable().or(z.literal('')),
+  citizenship: z.string().optional().nullable().or(z.literal('')),
+  country_of_residence: z.string().optional().nullable().or(z.literal('')),
+  passport_number: z.string().optional().nullable().or(z.literal('')),
+  passport_issue_date: z.string().optional().nullable().or(z.literal('')),
+  passport_expiry_date: z.string().optional().nullable().or(z.literal('')),
+  registration_address: z.string().optional().nullable().or(z.literal('')),
+  actual_address: z.string().optional().nullable().or(z.literal('')),
+  phone_whatsapp: z.string().optional().nullable().or(z.literal('')),
+  phone_telegram: z.string().optional().nullable().or(z.literal('')),
+  passport_document_url: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
+  npwp_document_url: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
+});
+
+const updateTaxSchema = z.object({
+  tin_number: z.string().optional().nullable().or(z.literal('')),
+  tin_document_url: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
+  p3b_treaty_number: z.string().optional().nullable().or(z.literal('')),
+  p3b_document_url: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
+  dgt1_issue_date: z.string().optional().nullable().or(z.literal('')),
+  dgt1_valid_until: z.string().optional().nullable().or(z.literal('')),
+});
+
+const updatePreferencesSchema = z.object({
+  preferred_language: z.string().optional().nullable().or(z.literal('')),
+  statement_language: z.string().optional().nullable().or(z.literal('')),
+  statement_email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
+  report_frequency: z.enum(['monthly', 'quarterly']).optional().nullable().or(z.literal('')),
+  email_notifications_enabled: z.boolean().optional(),
+  booking_notifications_enabled: z.boolean().optional(),
+  dgt1_notifications_enabled: z.boolean().optional(),
+});
+
+const updateBankingSchema = z.object({
+  bank_name: z.string().optional().nullable().or(z.literal('')),
+  bank_account_iban: z.string().optional().nullable().or(z.literal('')),
+  bank_account_swift: z.string().optional().nullable().or(z.literal('')),
+  bank_account_holder: z.string().optional().nullable().or(z.literal('')),
+  bank_country: z.string().optional().nullable().or(z.literal('')),
+  bank_address: z.string().optional().nullable().or(z.literal('')),
+  payout_currency: z.enum(['USD', 'EUR', 'AUD', 'GBP', 'SGD']).optional().nullable().or(z.literal('')),
+  crypto_wallet_address: z.string().optional().nullable().or(z.literal('')),
+  crypto_network: z.string().optional().nullable().or(z.literal('')),
+});
 
 export async function getOwnerProfile() {
   const supabase = await createServerSupabaseClient();
@@ -23,7 +71,7 @@ export async function updateProfileInfo(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Unauthorized' };
 
-  const payload = {
+  const rawPayload = {
     full_name: formData.get('full_name') as string,
     date_of_birth: formData.get('date_of_birth') as string || null,
     citizenship: formData.get('citizenship') as string || null,
@@ -39,10 +87,15 @@ export async function updateProfileInfo(formData: FormData) {
     npwp_document_url: formData.get('npwp_document_url') as string || null,
   };
 
+  const parsed = updateProfileSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
   const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await (supabase.from('owners') as any).update(payload).eq('id', (owner as any).id);
+  const { error } = await (supabase.from('owners') as any).update(parsed.data).eq('id', (owner as any).id);
 
   if (error) return { success: false, error: error.message };
   revalidatePath('/settings');
@@ -55,7 +108,7 @@ export async function updateTaxInfo(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Unauthorized' };
 
-  const payload = {
+  const rawPayload = {
     tin_number: formData.get('tin_number') as string || null,
     tin_document_url: formData.get('tin_document_url') as string || null,
     p3b_treaty_number: formData.get('p3b_treaty_number') as string || null,
@@ -64,10 +117,15 @@ export async function updateTaxInfo(formData: FormData) {
     dgt1_valid_until: formData.get('dgt1_valid_until') as string || null,
   };
 
+  const parsed = updateTaxSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
   const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await (supabase.from('owners') as any).update(payload).eq('id', (owner as any).id);
+  const { error } = await (supabase.from('owners') as any).update(parsed.data).eq('id', (owner as any).id);
 
   if (error) return { success: false, error: error.message };
   revalidatePath('/settings');
@@ -79,7 +137,7 @@ export async function updatePreferences(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Unauthorized' };
 
-  const payload = {
+  const rawPayload = {
     preferred_language: (formData.get('preferred_language') as string) || 'en',
     statement_language: (formData.get('statement_language') as string) || 'en',
     statement_email: formData.get('statement_email') as string || null,
@@ -89,10 +147,15 @@ export async function updatePreferences(formData: FormData) {
     dgt1_notifications_enabled: formData.get('dgt1_notifications_enabled') === 'true',
   };
 
+  const parsed = updatePreferencesSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
   const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();
   if (!owner) return { success: false, error: 'Owner not found' };
 
-  const { error } = await (supabase.from('owners') as any).update(payload).eq('id', (owner as any).id);
+  const { error } = await (supabase.from('owners') as any).update(parsed.data).eq('id', (owner as any).id);
 
   if (error) return { success: false, error: error.message };
   revalidatePath('/settings');
@@ -117,7 +180,7 @@ export async function updateBankingInfo(formData: FormData) {
     if (alt) alternative_payment_details = JSON.parse(alt);
   } catch(e) {}
 
-  const payload = {
+  const rawPayload = {
     bank_name: formData.get('bank_name') as string || null,
     bank_account_iban: formData.get('bank_account_iban') as string || null,
     bank_account_swift: formData.get('bank_account_swift') as string || null,
@@ -127,6 +190,15 @@ export async function updateBankingInfo(formData: FormData) {
     payout_currency: formData.get('payout_currency') as string || 'USD',
     crypto_wallet_address: formData.get('crypto_wallet_address') as string || null,
     crypto_network: formData.get('crypto_network') as string || null,
+  };
+
+  const parsed = updateBankingSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const payload = {
+    ...parsed.data,
     intermediary_bank_details,
     alternative_payment_details,
     banking_last_changed_at: new Date().toISOString(),

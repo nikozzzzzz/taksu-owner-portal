@@ -33,8 +33,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const cookieNames = request.cookies.getAll().map((c) => c.name);
-  console.log(`[middleware] path=${request.nextUrl.pathname} user=${user?.email ?? 'null'} cookies=[${cookieNames.join(',')}]`);
+  // Reduced logging — avoid leaking PII (emails, cookie names) in production
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[middleware] path=${request.nextUrl.pathname} user=${user?.email ?? 'anon'}`);
+  }
 
   const { pathname } = request.nextUrl;
 
@@ -49,7 +51,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes — redirect to login if not authenticated
-  const publicRoutes = ['/login', '/signup', '/reset-password', '/setup-account', '/api/auth', '/api/webhooks', '/api/test-beds24'];
+  const publicRoutes = ['/login', '/signup', '/reset-password', '/setup-account', '/api/auth', '/api/webhooks'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {

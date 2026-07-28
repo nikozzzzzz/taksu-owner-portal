@@ -42,18 +42,19 @@ function mapB24StatusToTaksu(b24Status: string | number): 'confirmed' | 'cancell
 export async function POST(req: NextRequest) {
   // ── 1. Authenticate the webhook request ─────────────────────────────────────
   let authFailed = false;
-  if (WEBHOOK_SECRET) {
+  if (!WEBHOOK_SECRET) {
+    // Hard-fail when secret is not configured — never accept unauthenticated webhooks
+    console.error(
+      '[Webhook/beds24] BEDS24_WEBHOOK_SECRET is not set. Rejecting request. Set this in .env.local!'
+    );
+    authFailed = true;
+  } else {
     const incomingSecret =
       req.headers.get('x-beds24-secret') || req.headers.get('authorization');
     if (!incomingSecret || incomingSecret !== WEBHOOK_SECRET) {
       console.warn('[Webhook/beds24] Rejected request: invalid or missing secret.');
       authFailed = true;
     }
-  } else {
-    // Warn loudly in logs but don't hard-fail to support initial setup without a secret
-    console.warn(
-      '[Webhook/beds24] BEDS24_WEBHOOK_SECRET is not set. Webhook is unauthenticated — set this in production!'
-    );
   }
 
   // ── 2. Parse payload ─────────────────────────────────────────────────────────

@@ -2,7 +2,21 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { getCurrentOwner } from '@/lib/auth/middleware';
+import { getCurrentOwner, getAuthUser } from '@/lib/auth/middleware';
+
+async function requireAdmin() {
+  const user = await getAuthUser();
+  if (!user) throw new Error('Unauthorized');
+  const role = user.app_metadata?.role || 'guest';
+  if (!['admin', 'root'].includes(role)) throw new Error('Forbidden');
+  return user;
+}
+
+async function requireAuthenticated() {
+  const owner = await getCurrentOwner();
+  if (!owner) throw new Error('Unauthorized');
+  return owner;
+}
 
 export async function getProjects() {
   const supabase = (await createServerSupabaseClient()) as any;
@@ -15,10 +29,11 @@ export async function getProjects() {
 }
 
 export async function createProject(formData: FormData) {
+  const owner = await requireAuthenticated();
+  await requireAdmin();
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
   const supabase = (await createServerSupabaseClient()) as any;
-  const owner = await getCurrentOwner();
 
   const { error } = await supabase
     .from('task_projects')
@@ -33,6 +48,7 @@ export async function createProject(formData: FormData) {
 }
 
 export async function deleteProject(id: string) {
+  await requireAdmin();
   const supabase = (await createServerSupabaseClient()) as any;
   const { error } = await supabase.from('task_projects').delete().eq('id', id);
   if (error) throw new Error(error.message);
@@ -66,8 +82,8 @@ export async function createColumn(projectId: string, title: string, position: n
 }
 
 export async function createTask(taskData: any) {
+  const owner = await requireAuthenticated();
   const supabase = (await createServerSupabaseClient()) as any;
-  const owner = await getCurrentOwner();
   const { data, error } = await supabase
     .from('tasks')
     .insert({
@@ -82,6 +98,7 @@ export async function createTask(taskData: any) {
 }
 
 export async function updateTask(taskId: string, projectId: string, updates: any) {
+  await requireAuthenticated();
   const supabase = (await createServerSupabaseClient()) as any;
   const { error } = await supabase
     .from('tasks')
@@ -92,6 +109,7 @@ export async function updateTask(taskId: string, projectId: string, updates: any
 }
 
 export async function moveTask(taskId: string, projectId: string, newColumnId: string, newPosition: number, otherTaskUpdates: { id: string, position: number }[]) {
+  await requireAuthenticated();
   const supabase = (await createServerSupabaseClient()) as any;
   
   // First update the moved task
@@ -144,6 +162,7 @@ export async function addComment(taskId: string, content: string) {
 }
 
 export async function getOwnersForSelect() {
+  await requireAdmin();
   const supabase = (await createServerSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('owners')

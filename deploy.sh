@@ -77,7 +77,7 @@ success ".env.local uploaded"
 
 # ── Remote: install, build, restart ───────────────────────────────────────────
 log "Running remote install + build + restart..."
-ssh -o StrictHostKeyChecking=no "$SERVER" bash -s -- "$REMOTE_DIR" "$APP_NAME" "$SKIP_INSTALL" << 'REMOTE'
+ssh -o StrictHostKeyChecking=accept-new "$SERVER" bash -s -- "$REMOTE_DIR" "$APP_NAME" "$SKIP_INSTALL" << 'REMOTE'
 set -euo pipefail
 
 REMOTE_DIR="$1"

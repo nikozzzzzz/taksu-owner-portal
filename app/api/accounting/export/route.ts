@@ -39,9 +39,13 @@ export async function GET(request: NextRequest) {
     if (dateFrom) query = query.gte('transaction_date', dateFrom);
     if (dateTo) query = query.lte('transaction_date', dateTo);
     if (search) {
-      query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,vendor_name.ilike.%${search}%`
-      );
+      // Sanitize search to prevent PostgREST filter injection
+      const safeSearch = search.replace(/[,().%\\]/g, '').trim().substring(0, 200);
+      if (safeSearch) {
+        query = query.or(
+          `title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%,vendor_name.ilike.%${safeSearch}%`
+        );
+      }
     }
 
     const { data, error } = await query;

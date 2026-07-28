@@ -8,11 +8,25 @@ import {
   invoiceSchema, InvoiceInput,
   TransactionFilter,
 } from '@/lib/validations/accounting';
+import { getAuthUser } from '@/lib/auth/middleware';
 
-function requireAccountingRole(role: string) {
+/**
+ * Sanitize search input for PostgREST .or() filters.
+ * Strips characters that could inject additional filter operators.
+ */
+function sanitizeSearch(input: string): string {
+  // Remove PostgREST special characters: commas, dots, parens, operators
+  return input.replace(/[,().%\\]/g, '').trim().substring(0, 200);
+}
+
+async function requireAccountingRole() {
+  const user = await getAuthUser();
+  if (!user) throw new Error('Unauthorized');
+  const role = user.app_metadata?.role || 'guest';
   if (!['admin', 'root', 'accountant'].includes(role)) {
     throw new Error('Insufficient permissions');
   }
+  return { user, role };
 }
 
 // ─── Categories ───────────────────────────────────────────────────────────────
@@ -30,6 +44,7 @@ export async function getCategories() {
 }
 
 export async function upsertCategory(payload: Partial<CategoryInput>) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
   const parsed = categorySchema.safeParse(payload);
@@ -51,6 +66,7 @@ export async function upsertCategory(payload: Partial<CategoryInput>) {
 }
 
 export async function deleteCategory(id: string) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
   // Check if any transactions reference this category
@@ -93,9 +109,12 @@ export async function getTransactions(filters: TransactionFilter = {}) {
   if (filters.date_from) query = query.gte('transaction_date', filters.date_from);
   if (filters.date_to) query = query.lte('transaction_date', filters.date_to);
   if (filters.search) {
-    query = query.or(
-      `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,vendor_name.ilike.%${filters.search}%`
-    );
+    const safeSearch = sanitizeSearch(filters.search);
+    if (safeSearch) {
+      query = query.or(
+        `title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%,vendor_name.ilike.%${safeSearch}%`
+      );
+    }
   }
 
   const { data, error } = await query;
@@ -115,6 +134,7 @@ export async function getTransactionSummary(filters: TransactionFilter = {}) {
 }
 
 export async function upsertTransaction(payload: Partial<TransactionInput>) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
   // Compute amount_usd
@@ -154,6 +174,7 @@ export async function upsertTransaction(payload: Partial<TransactionInput>) {
 }
 
 export async function cancelTransaction(id: string) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
   const { error } = await (supabase as any)
     .from('accounting_transactions')
@@ -203,6 +224,7 @@ export async function getInvoice(id: string) {
 }
 
 export async function upsertInvoice(payload: InvoiceInput) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
   const parsed = invoiceSchema.safeParse(payload);
@@ -258,6 +280,7 @@ export async function upsertInvoice(payload: InvoiceInput) {
 }
 
 export async function updateInvoiceStatus(id: string, status: string) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
   const updateData: any = { status };
   if (status === 'paid') updateData.paid_at = new Date().toISOString();
@@ -273,6 +296,7 @@ export async function updateInvoiceStatus(id: string, status: string) {
 }
 
 export async function deleteInvoice(id: string) {
+  await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
   // Only allow deleting drafts

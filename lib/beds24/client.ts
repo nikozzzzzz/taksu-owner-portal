@@ -46,6 +46,17 @@ export async function logApiCall(
     await fs.mkdir(logsDir, { recursive: true });
     
     const logFile = path.join(logsDir, 'beds24_api_logs.jsonl');
+
+    try {
+      const stats = await fs.stat(logFile);
+      // If log exceeds 10MB, rotate it to .old
+      if (stats.size > 10 * 1024 * 1024) {
+        await fs.rename(logFile, `${logFile}.old`);
+      }
+    } catch (e) {
+      // File doesn't exist yet, safe to ignore
+    }
+
     await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
   } catch (err) {
     console.error('[Beds24] Failed to save API log to file:', err);
