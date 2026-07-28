@@ -70,6 +70,7 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     email: villa?.email || '',
     beds24_property_id: villa?.beds24_property_id || '',
     beds24_room_id: villa?.beds24_room_id || '',
+    beds24_sync_mode: villa?.beds24_sync_mode || 'read_only',
     
     // Legal & Utilities
     cadastral_number: villa?.cadastral_number || '',
@@ -137,6 +138,7 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
     payload.hostaway_listing_id = formData.hostaway_listing_id ? Number(formData.hostaway_listing_id) : null;
     payload.beds24_property_id = formData.beds24_property_id ? Number(formData.beds24_property_id) : null;
     payload.beds24_room_id = formData.beds24_room_id ? Number(formData.beds24_room_id) : null;
+    payload.beds24_sync_mode = formData.beds24_sync_mode || 'read_only';
     
     await onSave(payload);
     setLoading(false);
@@ -303,6 +305,18 @@ export function VillaFormDialog({ villa, isOpen, owners, pools, onClose, onSave 
                     <p className="text-[11px] text-taksu-sage/80 mt-1 leading-tight">
                       Find this in Beds24: <strong>Settings &gt; Properties &gt; Rooms &gt; Setup</strong>. This is <strong>not</strong> the Property ID.
                     </p>
+                  </div>
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label>Beds24 Sync Mode</Label>
+                    <select
+                      name="beds24_sync_mode"
+                      value={(formData as any).beds24_sync_mode}
+                      onChange={handleChange as any}
+                      className="flex h-10 w-full rounded-md border border-taksu-bamboo bg-white px-3 py-2 text-sm text-taksu-forest focus:outline-none focus:ring-2 focus:ring-taksu-earth/50"
+                    >
+                      <option value="read_only">Read Only (Default)</option>
+                      <option value="read_write">Read & Write</option>
+                    </select>
                   </div>
                   <InputField label="PriceLabs ID" name="pricelabs_id"  value={(formData as any).pricelabs_id} onChange={handleChange} />
                   <InputField label="Turno ID" name="turno_id"  value={(formData as any).turno_id} onChange={handleChange} />

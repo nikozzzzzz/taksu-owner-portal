@@ -30,6 +30,12 @@ test.describe('Booking Calendar Flow', () => {
     const villaSelector = page.getByRole('combobox');
     await expect(villaSelector).toBeVisible();
     
+    // Select Taksu Bambu Villa explicitly since it has no beds24 integration
+    // and is safe to create local bookings on (bypassing read_only restrictions)
+    await villaSelector.click();
+    await page.getByRole('option', { name: 'Taksu Bambu Villa' }).click();
+    await page.waitForTimeout(1000); // Wait for React state to update selectedVilla
+    
     // 4. Click an empty date in the grid to create a booking
     // We'll right-click the date and then click "Create Booking/Block"
     await page.getByText('15', { exact: true }).first().click({ button: 'right' });

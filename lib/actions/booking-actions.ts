@@ -46,9 +46,13 @@ export async function createBooking(villaId: string, data: any) {
   // Beds24 will handle availability blocking across all connected channels.
   const { data: villaSettings } = await supabase
     .from('villas')
-    .select('beds24_property_id, beds24_room_id')
+    .select('beds24_property_id, beds24_room_id, beds24_sync_mode')
     .eq('id', villaId)
     .maybeSingle();
+
+  if (villaSettings?.beds24_property_id && villaSettings?.beds24_room_id && villaSettings?.beds24_sync_mode !== 'read_write') {
+    throw new Error('Villa is in Read-Only mode. Cannot create bookings or blocks locally. Change to Read & Write mode first.');
+  }
 
   let beds24_sync_error: string | null = null;
   if (villaSettings?.beds24_property_id && villaSettings?.beds24_room_id) {
@@ -110,11 +114,16 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
       beds24_booking_id,
       villas (
         beds24_property_id,
-        beds24_room_id
+        beds24_room_id,
+        beds24_sync_mode
       )
     `)
     .eq('id', bookingId)
     .maybeSingle();
+
+  if (existingBooking?.villas?.beds24_property_id && existingBooking?.villas?.beds24_room_id && existingBooking?.villas?.beds24_sync_mode !== 'read_write') {
+    throw new Error('Villa is in Read-Only mode. Cannot modify bookings or blocks locally. Change to Read & Write mode first.');
+  }
 
   const { error } = await supabase.from('bookings').update(payload).eq('id', bookingId);
   if (error) throw new Error(error.message);
@@ -180,7 +189,7 @@ export async function cancelBooking(bookingId: string, villaId: string) {
   // Fetch booking first to see if it's synced to Beds24 and check current status
   const { data: booking } = await supabase
     .from('bookings')
-    .select('beds24_booking_id, status, payout_status')
+    .select('beds24_booking_id, status, payout_status, villas(beds24_property_id, beds24_room_id, beds24_sync_mode)')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -188,6 +197,10 @@ export async function cancelBooking(bookingId: string, villaId: string) {
   if (booking.status === 'cancelled') throw new Error('Booking is already cancelled');
   if (booking.payout_status === 'received') {
     throw new Error('Cannot cancel a booking where payout has already been received');
+  }
+
+  if (booking.villas?.beds24_property_id && booking.villas?.beds24_room_id && booking.villas?.beds24_sync_mode !== 'read_write') {
+    throw new Error('Villa is in Read-Only mode. Cannot cancel bookings or blocks locally. Change to Read & Write mode first.');
   }
 
   // Cancel locally first
@@ -294,10 +307,14 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
   }
 
   const supabase = (await createServerSupabaseClient()) as any;
-  const { data: villa, error } = await supabase.from('villas').select('beds24_property_id, beds24_room_id').eq('id', villaId).single();
+  const { data: villa, error } = await supabase.from('villas').select('beds24_property_id, beds24_room_id, beds24_sync_mode').eq('id', villaId).single();
   
   if (error || !villa || !villa.beds24_room_id) {
     throw new Error('Villa or Beds24 mapping not found');
+  }
+
+  if (villa.beds24_sync_mode !== 'read_write') {
+    throw new Error('Villa is in Read-Only mode. Cannot push prices to Beds24.');
   }
 
   try {

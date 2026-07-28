@@ -43,6 +43,7 @@ export const villaSchema = z.object({
   hostaway_listing_id: z.number().int().optional().nullable(),
   beds24_property_id: z.number().int().optional().nullable(),
   beds24_room_id: z.number().int().optional().nullable(),
+  beds24_sync_mode: z.enum(['read_only', 'read_write']).default('read_only').optional().nullable(),
   wifi_network: z.string().optional().nullable(),
   wifi_password: z.string().optional().nullable(),
 
