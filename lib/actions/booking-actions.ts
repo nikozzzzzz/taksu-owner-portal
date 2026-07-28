@@ -306,11 +306,11 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
       method: 'POST',
       body: JSON.stringify([{
         roomId: villa.beds24_room_id,
-        from: fromDate,
-        to: toDate,
-        data: {
-          p1: price
-        }
+        calendar: [{
+          from: fromDate,
+          to: toDate,
+          price1: price
+        }]
       }])
     });
     
@@ -340,6 +340,13 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
     if (upsertErr) {
       console.error('[setRoomPrice] DB Upsert error:', upsertErr);
       // We still succeed if Beds24 succeeded, just log it.
+    } else {
+      const nextSync = new Date();
+      nextSync.setHours(nextSync.getHours() + 1);
+      await (supabase as any).from('villas').update({
+        prices_last_synced_at: new Date().toISOString(),
+        prices_next_sync_at: nextSync.toISOString()
+      }).eq('id', villaId);
     }
     
     return { success: true };

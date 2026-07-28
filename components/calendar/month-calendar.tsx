@@ -16,9 +16,11 @@ interface MonthCalendarProps {
   fetchBookings: (start: string, end: string) => Promise<CalendarBooking[]>;
   initialPrices: CalendarPrice[];
   fetchPrices: (start: string, end: string) => Promise<CalendarPrice[]>;
+  lastSyncedAt?: string;
+  nextSyncAt?: string;
 }
 
-export function MonthCalendar({ villaId, initialBookings, fetchBookings, initialPrices, fetchPrices }: MonthCalendarProps) {
+export function MonthCalendar({ villaId, initialBookings, fetchBookings, initialPrices, fetchPrices, lastSyncedAt, nextSyncAt }: MonthCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<CalendarBooking[]>(initialBookings);
   const [prices, setPrices] = useState<CalendarPrice[]>(initialPrices);
@@ -118,6 +120,31 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
+  const handleSyncBeds24 = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/beds24/sync-prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ villaId })
+      });
+      if (!res.ok) throw new Error('Sync failed');
+      
+      const startStr = startOfMonth(currentDate).toISOString().split('T')[0];
+      const endStr = endOfMonth(currentDate).toISOString().split('T')[0];
+      const newPrices = await fetchPrices(startStr, endStr);
+      setPrices(newPrices);
+      
+      // Force page reload to update server timestamps
+      window.location.reload();
+    } catch (err: any) {
+      console.error(err);
+      // We ignore errors if beds24 doesn't support the sync for this account
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-border p-4 sm:p-6 animate-in relative">
       {/* Header */}
@@ -126,6 +153,15 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
           {format(currentDate, 'MMMM yyyy')}
         </h2>
         <div className="flex items-center gap-2">
+          {lastSyncedAt && (
+            <div className="hidden sm:flex flex-col text-[10px] text-gray-400 mr-2 text-right">
+              <span>Prices Last Sync: {format(new Date(lastSyncedAt), 'MMM d, HH:mm')}</span>
+              {nextSyncAt && <span>Next Auto Sync: {format(new Date(nextSyncAt), 'MMM d, HH:mm')}</span>}
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={handleSyncBeds24} disabled={loading} className="text-xs mr-2">
+            Sync Prices
+          </Button>
           <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={loading}>
             <ChevronLeft className="h-4 w-4" />
           </Button>

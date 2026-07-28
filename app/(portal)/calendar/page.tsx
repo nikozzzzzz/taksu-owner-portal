@@ -22,7 +22,7 @@ export default async function CalendarPage({
   const resolvedSearchParams = await searchParams;
   
   // 1. Fetch available villas based on RBAC
-  let query = supabase.from('villas').select('id, display_name, internal_code').in('status', ['active', 'paused', 'pre_launch']);
+  let query = supabase.from('villas').select('id, display_name, internal_code, prices_last_synced_at, prices_next_sync_at').in('status', ['active', 'paused', 'pre_launch']);
   if (owner.role !== 'admin' && owner.role !== 'root') {
     query = query.eq('owner_id', owner.id);
   }
@@ -40,6 +40,8 @@ export default async function CalendarPage({
   if (villaId && !allowedVillas.find(v => v.id === villaId)) {
     villaId = allowedVillas[0]?.id;
   }
+
+  const activeVilla = allowedVillas.find(v => v.id === villaId);
 
   // 3. Fetch initial bookings and prices
   let initialBookings: any[] = [];
@@ -95,6 +97,8 @@ export default async function CalendarPage({
             fetchBookings={fetchBookingsForMonth}
             initialPrices={initialPrices}
             fetchPrices={fetchPricesForMonth}
+            lastSyncedAt={activeVilla?.prices_last_synced_at}
+            nextSyncAt={activeVilla?.prices_next_sync_at}
           />
         ) : (
           <div className="p-12 text-center text-taksu-sage bg-white rounded-xl border border-border">
