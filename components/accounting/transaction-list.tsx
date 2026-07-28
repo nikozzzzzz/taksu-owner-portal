@@ -27,7 +27,9 @@ interface TransactionListProps {
   };
 }
 
-function fmt(amount: number, currency = 'USD') {
+import { SYSTEM_CURRENCY, formatCurrency } from '@/lib/utils/currency';
+
+function fmt(amount: number, currency = SYSTEM_CURRENCY) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency === 'IDR' ? 'IDR' : currency === 'EUR' ? 'EUR' : 'USD',
@@ -222,7 +224,7 @@ export function TransactionList({
               <th className="px-4 py-3">Title</th>
               <th className="px-4 py-3">Vendor</th>
               <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3 text-right">USD Equiv.</th>
+              <th className="px-4 py-3 text-right">{SYSTEM_CURRENCY} Equiv.</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -275,11 +277,11 @@ export function TransactionList({
                   <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
                     <span className={tx.transaction_type === 'income' ? 'text-green-700' : 'text-red-700'}>
                       {tx.transaction_type === 'income' ? '+' : '-'}
-                      {fmt(tx.amount, tx.currency)} {tx.currency !== 'USD' && tx.currency}
+                      {fmt(tx.amount, tx.currency)} {tx.currency !== SYSTEM_CURRENCY && tx.currency}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
-                    {tx.currency !== 'USD' ? fmt(tx.amount_usd ?? tx.amount) : '—'}
+                    {tx.currency !== SYSTEM_CURRENCY ? fmt(tx.amount_usd ?? tx.amount) : '—'}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <Button

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SYSTEM_CURRENCY } from '@/lib/utils/currency';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarBooking } from '@/lib/data/calendar';
 import { format, parseISO, addDays } from 'date-fns';
@@ -201,7 +202,7 @@ export function BookingModal({ villaId, booking, selectedRange, open, onOpenChan
               </div>
 
               <div className="space-y-2">
-                <Label>Net Revenue (USD)</Label>
+                <Label>Net Revenue ({SYSTEM_CURRENCY})</Label>
                 <Input 
                   type="number"
                   min="0"

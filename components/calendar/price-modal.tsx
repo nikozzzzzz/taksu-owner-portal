@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { setRoomPrice } from '@/lib/actions/booking-actions';
 import { toast } from 'sonner';
+import { SYSTEM_CURRENCY } from '@/lib/utils/currency';
 
 interface PriceModalProps {
   villaId: string;
@@ -44,7 +45,7 @@ export function PriceModal({ villaId, selectedDates, open, onOpenChange, onSave 
       }
       
       toast.success('Price Updated', {
-        description: `Successfully set nightly price to $${price} for ${displayRange}.`
+        description: `Successfully set nightly price to ${price} ${SYSTEM_CURRENCY} for ${displayRange}.`
       });
       onOpenChange(false);
       setPrice('');
@@ -68,7 +69,7 @@ export function PriceModal({ villaId, selectedDates, open, onOpenChange, onSave 
         
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label>Nightly Price (USD)</Label>
+            <Label>Nightly Price ({SYSTEM_CURRENCY})</Label>
             <Input 
               type="number" 
               required

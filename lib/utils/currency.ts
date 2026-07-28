@@ -12,6 +12,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   IDR: 'Rp',
 };
 
+export const SYSTEM_CURRENCY = process.env.NEXT_PUBLIC_BASE_CURRENCY || 'IDR';
+
 interface FormatCurrencyOptions {
   currency?: string;
   minimumFractionDigits?: number;
@@ -21,7 +23,7 @@ interface FormatCurrencyOptions {
 
 /**
  * Format a number as currency
- * @example formatCurrency(1374.48) → "$1,374.48"
+ * @example formatCurrency(1374.48) → "Rp 1,374.48" (or $ depending on SYSTEM_CURRENCY)
  * @example formatCurrency(1374.48, { currency: 'EUR' }) → "€1,374.48"
  */
 export function formatCurrency(
@@ -29,11 +31,18 @@ export function formatCurrency(
   options: FormatCurrencyOptions = {}
 ): string {
   const {
-    currency = 'USD',
-    minimumFractionDigits = 2,
-    maximumFractionDigits = 2,
+    currency = SYSTEM_CURRENCY,
+    minimumFractionDigits,
+    maximumFractionDigits,
     compact = false,
   } = options;
+
+  // Use 0 fraction digits for IDR by default, 2 for others
+  const defaultMinFrac = currency === 'IDR' ? 0 : 2;
+  const defaultMaxFrac = currency === 'IDR' ? 0 : 2;
+  
+  const finalMinFrac = minimumFractionDigits ?? defaultMinFrac;
+  const finalMaxFrac = maximumFractionDigits ?? defaultMaxFrac;
 
   if (compact && Math.abs(amount) >= 1000) {
     const formatter = new Intl.NumberFormat('en-US', {
@@ -48,8 +57,8 @@ export function formatCurrency(
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
-    minimumFractionDigits,
-    maximumFractionDigits,
+    minimumFractionDigits: finalMinFrac,
+    maximumFractionDigits: finalMaxFrac,
   });
 
   return formatter.format(amount);

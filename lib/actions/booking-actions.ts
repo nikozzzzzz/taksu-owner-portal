@@ -9,6 +9,7 @@ import {
   updateBeds24Booking,
   cancelBeds24Booking,
 } from '@/lib/beds24/client';
+import { SYSTEM_CURRENCY } from '@/lib/utils/currency';
 
 // existing createBooking, updateBooking, cancelBooking...
 export async function createBooking(villaId: string, data: any) {
@@ -327,8 +328,8 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
       rowsToUpsert.push({
         villa_id: villaId,
         date: dateStr,
-        price_idr: null,
-        price_usd: price,
+        price_idr: SYSTEM_CURRENCY === 'IDR' ? price : null,
+        price_usd: SYSTEM_CURRENCY === 'USD' ? price : null,
       });
     }
 
