@@ -76,6 +76,9 @@ export async function createBooking(villaId: string, data: any) {
       // Non-fatal: log the error but still save the booking locally
       beds24_sync_error = err.message || 'Failed to sync to Beds24';
       console.error('[booking-actions] Beds24 push failed, saving locally only:', err);
+      import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+        logErrorToTelegram(err, `Beds24 push failed in createBooking (Villa: ${villaId})`);
+      }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   }
 
@@ -149,6 +152,9 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
       // Non-fatal: log but don't fail the local update
       beds24_sync_error = err.message || 'Failed to sync update to Beds24';
       console.error('[booking-actions] Failed to sync update to Beds24:', err);
+      import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+        logErrorToTelegram(err, `Failed to sync update in updateBooking (Booking: ${bookingId})`);
+      }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   } else if (b24PropId && b24RoomId) {
     // Booking was never synced, create it now!
@@ -172,6 +178,9 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
     } catch (err: any) {
       beds24_sync_error = err.message || 'Failed to sync new booking to Beds24';
       console.error('[booking-actions] Beds24 push missing booking failed:', err);
+      import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+        logErrorToTelegram(err, `Failed to push missing booking in updateBooking (Booking: ${bookingId})`);
+      }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   }
   return { success: true, beds24_sync_error };
@@ -219,6 +228,9 @@ export async function cancelBooking(bookingId: string, villaId: string) {
     } catch (err: any) {
       beds24_sync_error = err.message || 'Failed to cancel booking in Beds24';
       console.error('[booking-actions] Failed to cancel booking in Beds24 (local booking is still cancelled):', err);
+      import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+        logErrorToTelegram(err, `Failed to cancel booking in Beds24 (Booking: ${bookingId})`);
+      }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   }
   return { success: true, beds24_sync_error };
@@ -369,6 +381,9 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
     return { success: true };
   } catch (err: any) {
     console.error('[setRoomPrice]', err);
+    import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+      logErrorToTelegram(err, `Error in setRoomPrice (Villa: ${villaId}, Dates: ${fromDate} to ${toDate})`);
+    }).catch(e => console.error('[Telegram] Import fail:', e));
     return { success: false, error: err.message };
   }
 }

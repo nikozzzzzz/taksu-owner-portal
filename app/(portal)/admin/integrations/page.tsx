@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Link2 } from 'lucide-react';
+import { Link2, Bot } from 'lucide-react';
 
 export const metadata = {
   title: 'Integrations | Taksu Owner Portal',
@@ -44,6 +44,21 @@ export default async function IntegrationsPage() {
           </div>
           <p className="text-sm text-taksu-ink/70">
             Channel manager integration for bookings, availability, and webhooks.
+          </p>
+        </Link>
+
+        <Link
+          href="/admin/integrations/telegram"
+          className="flex flex-col gap-3 rounded-lg border border-taksu-ink/10 bg-white p-6 shadow-sm transition-all hover:border-taksu-bamboo hover:shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-taksu-bone text-taksu-forest">
+              <Bot className="h-5 w-5" />
+            </div>
+            <h3 className="font-medium text-taksu-ink">Telegram Bot</h3>
+          </div>
+          <p className="text-sm text-taksu-ink/70">
+            Configure system alerts, error reports, and API activity alerts to a Telegram chat.
           </p>
         </Link>
       </div>

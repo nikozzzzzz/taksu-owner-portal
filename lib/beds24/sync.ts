@@ -283,6 +283,11 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
     return { success: true, data: counters };
   } catch (err: any) {
     console.error('[Beds24/sync] Fatal error:', err);
+    // Send to Telegram Logging Bot
+    import('@/lib/telegram').then(({ logErrorToTelegram }) => {
+      logErrorToTelegram(err, 'Beds24 Sync Fatal Error');
+    }).catch(e => console.error('[Telegram] Import fail:', e));
+
     if (logId) {
       await supabase
         .from('beds24_sync_log')

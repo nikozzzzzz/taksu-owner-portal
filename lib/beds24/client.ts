@@ -1,4 +1,5 @@
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 const BEDS24_API_URL = 'https://api.beds24.com/v2';
 
@@ -58,6 +59,45 @@ export async function logApiCall(
     }
 
     await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
+
+    // 1. Insert into Supabase api_logs table
+    try {
+      const supabase = createAdminSupabaseClient() as any;
+      await supabase.from('api_logs').insert({
+        direction,
+        service: 'beds24',
+        endpoint,
+        payload: payload ? (typeof payload === 'object' ? payload : { raw: payload }) : null,
+        response_status: status,
+        response_body: typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody),
+        error_message: errorMessage || undefined
+      });
+    } catch (dbErr) {
+      console.error('[Beds24] Failed to save API log to DB:', dbErr);
+    }
+
+    // 2. Send to Telegram logging bot asynchronously
+    try {
+      const { sendTelegramNotification, escapeHtml } = await import('@/lib/telegram');
+      
+      const payloadStr = payload ? JSON.stringify(payload, null, 2) : 'None';
+      const responseStr = responseBody ? (typeof responseBody === 'object' ? JSON.stringify(responseBody, null, 2) : responseBody) : 'None';
+      
+      const messageHtml = 
+        `<b>Endpoint:</b> <code>${escapeHtml(endpoint)}</code>\n` +
+        `<b>Direction:</b> <code>${direction.toUpperCase()}</code>\n` +
+        `<b>Status:</b> <code>${status ?? 'N/A'}</code>\n` +
+        `<b>Error:</b> <code>${escapeHtml(errorMessage || 'None')}</code>\n\n` +
+        `<b>Request Payload:</b>\n<pre><code>${escapeHtml(payloadStr.substring(0, 1000))}</code></pre>\n\n` +
+        `<b>Response Body:</b>\n<pre><code>${escapeHtml(responseStr.substring(0, 1000))}</code></pre>`;
+      
+      sendTelegramNotification(messageHtml, 'api').catch(err => {
+        console.error('[Telegram] Async send failed for API call:', err);
+      });
+    } catch (telErr) {
+      console.error('[Telegram] Formatting/send logic failed:', telErr);
+    }
+
   } catch (err) {
     console.error('[Beds24] Failed to save API log to file:', err);
   }
