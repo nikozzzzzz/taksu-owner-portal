@@ -3,6 +3,7 @@
 import { getAuthUser } from '@/lib/auth/middleware';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkBotHealth, clearTelegramCache } from '@/lib/telegram';
+import { logUserActivity } from '@/lib/user-logger';
 
 async function requireAdmin() {
   const user = await getAuthUser();
@@ -80,6 +81,8 @@ export async function saveTelegramSettings(formData: {
     // Clear memory cache so settings take effect immediately
     clearTelegramCache();
 
+    await logUserActivity('save_telegram_settings', { is_enabled: formData.is_enabled });
+
     return { success: true };
   } catch (err: any) {
     console.error('[telegram-actions] saveTelegramSettings error:', err);
@@ -116,6 +119,8 @@ export async function testTelegramSettings(formData: {
       
       clearTelegramCache();
     }
+
+    await logUserActivity('test_telegram_settings');
 
     return {
       success: health.success,

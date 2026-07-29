@@ -10,6 +10,7 @@ import {
   cancelBeds24Booking,
 } from '@/lib/beds24/client';
 import { SYSTEM_CURRENCY } from '@/lib/utils/currency';
+import { logUserActivity } from '@/lib/user-logger';
 
 // existing createBooking, updateBooking, cancelBooking...
 export async function createBooking(villaId: string, data: any) {
@@ -85,6 +86,8 @@ export async function createBooking(villaId: string, data: any) {
   const { error } = await supabase.from('bookings').insert(payload);
   if (error) throw new Error(error.message);
   
+  await logUserActivity('create_booking', { villaId, guestName: data.guest_name, checkIn: data.check_in_date });
+
   return { success: true, beds24_sync_error };
 }
 
@@ -183,6 +186,7 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
       }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   }
+  await logUserActivity('update_booking', { bookingId, status: data.status });
   return { success: true, beds24_sync_error };
 }
 
@@ -233,6 +237,7 @@ export async function cancelBooking(bookingId: string, villaId: string) {
       }).catch(e => console.error('[Telegram] Import fail:', e));
     }
   }
+  await logUserActivity('cancel_booking', { bookingId });
   return { success: true, beds24_sync_error };
 }
 
@@ -378,6 +383,7 @@ export async function setRoomPrice(villaId: string, fromDate: string, toDate: st
       }).eq('id', villaId);
     }
     
+    await logUserActivity('set_room_price', { villaId, fromDate, toDate, price });
     return { success: true };
   } catch (err: any) {
     console.error('[setRoomPrice]', err);

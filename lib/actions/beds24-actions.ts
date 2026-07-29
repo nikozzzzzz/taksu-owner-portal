@@ -8,6 +8,7 @@ import {
 } from '@/lib/beds24/client';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
+import { logUserActivity } from '@/lib/user-logger';
 
 async function requireAdmin() {
   const user = await getAuthUser();
@@ -26,6 +27,7 @@ export async function connectBeds24(inviteCode: string) {
     }
 
     await setupBeds24Connection(trimmedCode);
+    await logUserActivity('connect_beds24');
     return { success: true };
   } catch (error: any) {
     console.error('[beds24-actions] connectBeds24 error:', error);
@@ -107,6 +109,7 @@ export async function mapVillaToBeds24(
       console.error('[beds24-actions] mapVillaToBeds24 error:', error);
       return { success: false, error: error.message };
     }
+    await logUserActivity('map_villa_to_beds24', { villaId, beds24PropertyId, beds24RoomId });
     return { success: true };
   } catch (error: any) {
     console.error('[beds24-actions] mapVillaToBeds24 error:', error);
@@ -131,6 +134,7 @@ export async function unmapVillaFromBeds24(villaId: string) {
       console.error('[beds24-actions] unmapVillaFromBeds24 error:', error);
       return { success: false, error: error.message };
     }
+    await logUserActivity('unmap_villa_from_beds24', { villaId });
     return { success: true };
   } catch (error: any) {
     console.error('[beds24-actions] unmapVillaFromBeds24 error:', error);
@@ -150,6 +154,7 @@ export async function fullSyncBeds24() {
     if (!result.success) {
       return { success: false, error: result.error ?? 'Sync failed' };
     }
+    await logUserActivity('full_sync_beds24');
     return { success: true, data: result.data };
   } catch (error: any) {
     console.error('[beds24-actions] fullSyncBeds24 error:', error);

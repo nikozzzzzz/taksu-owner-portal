@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireOwner, getOwnerVilla, getAuthUser } from '@/lib/auth/middleware';
 import { PortalLayoutClient } from './layout-client';
+import { UserActivityTracker } from '@/components/user-activity-tracker';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   // Server-side auth check — redirects to /login if not authenticated
@@ -15,6 +16,7 @@ export default async function PortalLayout({ children }: { children: React.React
       villaName={villa?.display_name}
       role={role}
     >
+      <UserActivityTracker />
       {children}
     </PortalLayoutClient>
   );
