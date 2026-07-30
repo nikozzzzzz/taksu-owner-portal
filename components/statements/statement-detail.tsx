@@ -1,11 +1,15 @@
 'use client';
 
-import { ArrowLeft, TrendingUp, TrendingDown, Calendar, Percent } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, TrendingUp, TrendingDown, Calendar, Percent, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatPercent } from '@/lib/utils/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ExpenseCategory } from './expense-category';
 import { StatementDownloadButtons } from './statement-download-buttons';
+import { manualRecalculateStatementAction } from '@/lib/actions/statement-actions';
 import type { Database } from '@/lib/supabase/types';
 
 type StatementRow = Database['public']['Tables']['monthly_statements']['Row'] & {
@@ -21,9 +25,24 @@ type ExpenseRow = Database['public']['Tables']['operating_expenses']['Row'];
 interface StatementDetailProps {
   statement: StatementRow;
   expenses: ExpenseRow[];
+  isAdmin?: boolean;
 }
 
-export function StatementDetail({ statement, expenses }: StatementDetailProps) {
+export function StatementDetail({ statement, expenses, isAdmin }: StatementDetailProps) {
+  const router = useRouter();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      await manualRecalculateStatementAction(statement.villa_id, statement.billing_month);
+      router.refresh();
+    } catch (err) {
+      console.error('Failed to regenerate statement:', err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
   const date = new Date(statement.billing_month);
   const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -56,8 +75,22 @@ export function StatementDetail({ statement, expenses }: StatementDetailProps) {
           <p className="text-3xl font-bold tabular-nums text-taksu-jungle">
             {formatCurrency(statement.owner_net_payout_usd)}
           </p>
-          <div className="rounded-full bg-taksu-jungle/10 px-3 py-1 text-xs font-medium text-taksu-jungle">
-            Status: <span className="uppercase">{statement.status.replace(/_/g, ' ')}</span>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                className="h-7 text-xs flex items-center gap-1 border-taksu-sage text-taksu-forest hover:bg-taksu-cream"
+              >
+                <RefreshCw className={`h-3 w-3 ${isRegenerating ? 'animate-spin' : ''}`} />
+                {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+              </Button>
+            )}
+            <div className="rounded-full bg-taksu-jungle/10 px-3 py-1 text-xs font-medium text-taksu-jungle">
+              Status: <span className="uppercase">{statement.status.replace(/_/g, ' ')}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -143,6 +143,49 @@ export async function upsertVilla(payload: any) {
   return { success: true };
 }
 
+export async function deleteVilla(villaId: string) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+
+  // 1. Get the villa display name for logging before deletion
+  const { data: villa }: { data: any } = await supabase
+    .from('villas')
+    .select('display_name')
+    .eq('id', villaId)
+    .maybeSingle();
+
+  const displayName = villa?.display_name || villaId;
+
+  // 2. Delete related records to prevent foreign key violations
+  await supabase.from('villa_agreements').delete().eq('villa_id', villaId);
+  await supabase.from('bookings').delete().eq('villa_id', villaId);
+  await supabase.from('monthly_statements').delete().eq('villa_id', villaId);
+  await supabase.from('operating_expenses').delete().eq('villa_id', villaId);
+  await supabase.from('owner_documents').delete().eq('villa_id', villaId);
+  await supabase.from('owner_requests').delete().eq('villa_id', villaId);
+  await supabase.from('pool_rotation_state').delete().eq('villa_id', villaId);
+
+  // 3. Delete the villa
+  const { error } = await supabase
+    .from('villas')
+    .delete()
+    .eq('id', villaId);
+
+  if (error) throw new Error(error.message);
+
+  // 4. Log user activity
+  try {
+    const { logUserActivity } = await import('@/lib/user-logger');
+    await logUserActivity('delete_villa', { villaId, displayName });
+  } catch (err) {
+    console.error('Failed to log delete villa activity:', err);
+  }
+
+  revalidatePath('/admin/villas');
+  return { success: true };
+}
+
+
 // ─── Request Actions ─────────────────────────────────────────────────────────
 
 export async function updateRequestStatus(requestId: string, newStatus: string) {

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Edit2, Plus } from 'lucide-react';
+import { Edit2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { upsertVilla } from '@/lib/actions/admin-actions';
+import { upsertVilla, deleteVilla } from '@/lib/actions/admin-actions';
 import { VillaFormDialog } from './villa-form-dialog';
 
 interface VillaListProps {
@@ -26,6 +26,18 @@ export function VillaList({ initialVillas, owners, pools }: VillaListProps) {
       window.location.reload(); 
     } catch (err: any) {
       alert(err.message || 'Failed to save villa');
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}? This will also delete all associated bookings, statements, and agreements.`)) {
+      return;
+    }
+    try {
+      await deleteVilla(id);
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete villa');
     }
   };
 
@@ -89,14 +101,25 @@ export function VillaList({ initialVillas, owners, pools }: VillaListProps) {
                 </td>
                 <td className="px-6 py-4">{villa.bedrooms || 0} BR</td>
                 <td className="px-6 py-4 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingVilla(villa)}
-                  >
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingVilla(villa)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDelete(villa.id, villa.display_name)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

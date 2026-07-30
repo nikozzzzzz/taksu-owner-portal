@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireOwner } from '@/lib/auth/middleware';
 import { generateNextInvoiceNumber, upsertInvoice } from '@/lib/actions/accounting-actions';
+import { autoRecalculateStatement } from '@/lib/actions/statement-actions';
 import { revalidatePath } from 'next/cache';
 import {
   pushBookingToBeds24,
@@ -88,6 +89,14 @@ export async function createBooking(villaId: string, data: any) {
   
   await logUserActivity('create_booking', { villaId, guestName: data.guest_name, checkIn: data.check_in_date });
 
+  try {
+    const checkIn = new Date(data.check_in_date);
+    const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+    await autoRecalculateStatement(villaId, billingMonthStr);
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in createBooking:', stmtErr);
+  }
+
   return { success: true, beds24_sync_error };
 }
 
@@ -131,8 +140,32 @@ export async function updateBooking(bookingId: string, villaId: string, data: an
     throw new Error('Villa is in Read-Only mode. Cannot modify bookings or blocks locally. Change to Read & Write mode first.');
   }
 
+  // Fetch existing booking before update to know the old month/villa if it changes
+  const { data: bookingBefore } = await supabase
+    .from('bookings')
+    .select('villa_id, check_in_date')
+    .eq('id', bookingId)
+    .maybeSingle();
+
   const { error } = await supabase.from('bookings').update(payload).eq('id', bookingId);
   if (error) throw new Error(error.message);
+
+  // Trigger statement recalculations
+  try {
+    let oldMonthStr: string | null = null;
+    if (bookingBefore) {
+      const oldCheckIn = new Date(bookingBefore.check_in_date);
+      oldMonthStr = `${oldCheckIn.getFullYear()}-${String(oldCheckIn.getMonth() + 1).padStart(2, '0')}-01`;
+      await autoRecalculateStatement(bookingBefore.villa_id, oldMonthStr);
+    }
+    const newCheckIn = new Date(data.check_in_date);
+    const newMonthStr = `${newCheckIn.getFullYear()}-${String(newCheckIn.getMonth() + 1).padStart(2, '0')}-01`;
+    if (bookingBefore?.villa_id !== villaId || newMonthStr !== oldMonthStr) {
+      await autoRecalculateStatement(villaId, newMonthStr);
+    }
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in updateBooking:', stmtErr);
+  }
 
   // Outbound sync: push the update to Beds24 if this booking is tracked there
   const b24PropId = existingBooking?.villas?.beds24_property_id;
@@ -202,7 +235,7 @@ export async function cancelBooking(bookingId: string, villaId: string) {
   // Fetch booking first to see if it's synced to Beds24 and check current status
   const { data: booking } = await supabase
     .from('bookings')
-    .select('beds24_booking_id, status, payout_status, villas(beds24_property_id, beds24_room_id, beds24_sync_mode)')
+    .select('beds24_booking_id, status, payout_status, check_in_date, villa_id, villas(beds24_property_id, beds24_room_id, beds24_sync_mode)')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -222,6 +255,17 @@ export async function cancelBooking(bookingId: string, villaId: string) {
     .update({ status: 'cancelled' })
     .eq('id', bookingId);
   if (error) throw new Error(error.message);
+
+  // Trigger statement recalculation
+  try {
+    if (booking) {
+      const checkIn = new Date(booking.check_in_date);
+      const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+      await autoRecalculateStatement(booking.villa_id, billingMonthStr);
+    }
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in cancelBooking:', stmtErr);
+  }
 
   let beds24_sync_error: string | null = null;
   // Then sync the cancellation to Beds24 (non-fatal if it fails)
@@ -293,6 +337,17 @@ export async function markBookingPayoutReceived(bookingId: string, payoutDate: s
     .eq('id', bookingId);
 
   if (updateError) throw new Error(updateError.message);
+
+  // Trigger statement recalculation
+  try {
+    if (booking) {
+      const checkIn = new Date(booking.check_in_date);
+      const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+      await autoRecalculateStatement(booking.villa_id, billingMonthStr);
+    }
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in markBookingPayoutReceived:', stmtErr);
+  }
 
   revalidatePath('/accounting');
   revalidatePath('/calendar');

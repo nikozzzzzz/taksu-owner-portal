@@ -6,19 +6,17 @@ import { createAdminSupabaseClient } from '../lib/supabase/admin';
 async function main() {
   const supabase = createAdminSupabaseClient();
 
-  const { data: booking, error } = await supabase
-    .from('bookings')
-    .select('*')
-    .limit(1)
-    .maybeSingle();
+  const { data: owners, error } = await supabase
+    .from('owners')
+    .select('id, email, full_name, role, status');
 
   if (error) {
-    console.error('Error fetching booking:', error);
+    console.error('Error fetching owners:', error);
     return;
   }
 
-  console.log('--- SINGLE BOOKING ---');
-  console.log(JSON.stringify(booking, null, 2));
+  console.log('--- ALL OWNER ACCOUNTS ---');
+  console.log(JSON.stringify(owners, null, 2));
 }
 
 main().catch(console.error);

@@ -20,7 +20,11 @@ export default async function StatementDetailPage({ params }: { params: Promise<
 
   return (
     <div className="portal-page animate-in">
-      <StatementDetail statement={data.statement} expenses={data.expenses} />
+      <StatementDetail 
+        statement={data.statement} 
+        expenses={data.expenses} 
+        isAdmin={owner.role === 'admin' || owner.role === 'root' || owner.role === 'accountant'} 
+      />
     </div>
   );
 }

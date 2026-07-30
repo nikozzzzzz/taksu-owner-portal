@@ -4,6 +4,8 @@ import {
   getBeds24Rooms,
   getBeds24Bookings,
 } from '@/lib/beds24/client';
+import { convertToUsd } from '@/lib/utils/exchange-rate';
+import { autoRecalculateStatement } from '@/lib/actions/statement-actions';
 
 // Beds24 booking status codes → Taksu
 const BEDS24_STATUS: Record<string, string> = {
@@ -30,7 +32,13 @@ function isValidDate(d: unknown): boolean {
 }
 
 export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhook' = 'manual') {
-  const supabase = (await createServerSupabaseClient()) as any;
+  let supabase: any;
+  try {
+    supabase = (await createServerSupabaseClient()) as any;
+  } catch (err) {
+    const { createAdminSupabaseClient } = await import('@/lib/supabase/admin');
+    supabase = createAdminSupabaseClient();
+  }
 
   // ── Create sync log entry ───────────────────────────────────────────────────
   const { data: logRow, error: logErr } = await supabase
@@ -184,6 +192,8 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
         }
       }
 
+      const villasToRecalculate = new Set<string>();
+
       for (const b24 of bookings) {
         const beds24BookingId: number = b24.id ?? b24.bookingId;
         const b24RoomId: number = b24.roomId;
@@ -202,10 +212,10 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
           continue;
         }
 
-        // Look up the mapped Taksu villa
+        // Look up the mapped Taksu villa (including currency field)
         const { data: villa } = await supabase
           .from('villas')
-          .select('id')
+          .select('id, currency')
           .eq('beds24_property_id', propertyId)
           .eq('beds24_room_id', b24RoomId)
           .maybeSingle();
@@ -221,7 +231,16 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
         const guestFirst = String(b24.firstName || '').trim();
         const guestLast  = String(b24.lastName  || '').trim();
         const guestName  = [guestFirst, guestLast].filter(Boolean).join(' ') || 'Unknown Guest';
-        const totalPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
+        
+        // Financial Mapping: Convert currency to USD
+        const bookingCurrency = b24.currency || villa.currency || 'IDR';
+        const rawPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
+        const rawCommission = typeof b24.commission === 'number' ? b24.commission : parseFloat(b24.commission) || 0;
+        
+        const totalPaidByGuestUsd = await convertToUsd(rawPrice, bookingCurrency);
+        const channelCommissionUsd = await convertToUsd(rawCommission, bookingCurrency);
+        const phrTaxUsd = totalPaidByGuestUsd * 0.10;
+
         const statusStr  = String(b24.status ?? '');
         const status     = BEDS24_STATUS[statusStr] ?? 'pending';
         let channel      = mapChannel(b24.apiSource, b24.referrer);
@@ -243,7 +262,9 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
           guest_country:         b24.country || null,
           guests_count:          guestsCount,
           channel_reservation_code: b24.apiReference || null,
-          total_paid_by_guest_usd: totalPrice,
+          total_paid_by_guest_usd: totalPaidByGuestUsd,
+          channel_commission_usd:  channelCommissionUsd,
+          phr_tax_usd:             phrTaxUsd,
           channel,
           status,
           booked_at: isValidDate(b24.bookingTime) ? b24.bookingTime : new Date().toISOString(),
@@ -258,15 +279,30 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
 
         if (existing) {
           const { error } = await supabase
-            .from('bookings')
-            .update(payload)
-            .eq('id', existing.id);
+             .from('bookings')
+             .update(payload)
+             .eq('id', existing.id);
           if (!error) counters.bookings_updated++;
           else console.error(`[Beds24/sync] Update failed for booking ${beds24BookingId}:`, error);
         } else {
           const { error } = await supabase.from('bookings').insert(payload);
           if (!error) counters.bookings_created++;
           else console.error(`[Beds24/sync] Insert failed for booking ${beds24BookingId}:`, error);
+        }
+
+        // Add statement month to recalculate queue
+        const checkIn = new Date(b24.arrival);
+        const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+        villasToRecalculate.add(`${villa.id}_${billingMonthStr}`);
+      }
+
+      // Automatically recalculate monthly statements for any modified months
+      for (const key of villasToRecalculate) {
+        const [vId, billingMonth] = key.split('_');
+        try {
+          await autoRecalculateStatement(vId, billingMonth);
+        } catch (stmtErr) {
+          console.error(`[Beds24/sync] Failed to auto-recalculate statement for villa ${vId} month ${billingMonth}:`, stmtErr);
         }
       }
     }

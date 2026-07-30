@@ -160,6 +160,17 @@ export async function upsertTransaction(payload: Partial<TransactionInput>) {
     throw new Error('Invalid transaction: ' + parsed.error.errors.map(e => e.message).join(', '));
   }
 
+  // Fetch existing transaction if updating, to get original month/villa
+  let oldTx: any = null;
+  if (payload.id) {
+    const { data } = await (supabase as any)
+      .from('accounting_transactions')
+      .select('villa_id, transaction_date, entity_type, transaction_type')
+      .eq('id', payload.id)
+      .maybeSingle();
+    oldTx = data;
+  }
+
   const { id, ...rest } = parsed.data;
   if (id) {
     const { error } = await (supabase as any).from('accounting_transactions').update(rest).eq('id', id);
@@ -169,6 +180,31 @@ export async function upsertTransaction(payload: Partial<TransactionInput>) {
     if (error) throw new Error(error.message);
   }
 
+  // Trigger statement recalculations
+  try {
+    const { autoRecalculateStatement } = await import('@/lib/actions/statement-actions');
+    
+    // 1. Recalculate old statement if old transaction was a villa expense/income
+    if (oldTx && oldTx.entity_type === 'villa' && oldTx.villa_id) {
+      const oldCheckIn = new Date(oldTx.transaction_date);
+      const oldMonthStr = `${oldCheckIn.getFullYear()}-${String(oldCheckIn.getMonth() + 1).padStart(2, '0')}-01`;
+      await autoRecalculateStatement(oldTx.villa_id, oldMonthStr);
+    }
+    
+    // 2. Recalculate new statement if new transaction is a villa expense/income
+    if (rest.entity_type === 'villa' && rest.villa_id && rest.transaction_date) {
+      const newCheckIn = new Date(rest.transaction_date);
+      const newMonthStr = `${newCheckIn.getFullYear()}-${String(newCheckIn.getMonth() + 1).padStart(2, '0')}-01`;
+      
+      const oldMonthStr = oldTx ? `${new Date(oldTx.transaction_date).getFullYear()}-${String(new Date(oldTx.transaction_date).getMonth() + 1).padStart(2, '0')}-01` : null;
+      if (!oldTx || oldTx.villa_id !== rest.villa_id || oldMonthStr !== newMonthStr) {
+        await autoRecalculateStatement(rest.villa_id, newMonthStr);
+      }
+    }
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in upsertTransaction:', stmtErr);
+  }
+
   revalidatePath('/accounting');
   return { success: true };
 }
@@ -176,11 +212,31 @@ export async function upsertTransaction(payload: Partial<TransactionInput>) {
 export async function cancelTransaction(id: string) {
   await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
+  
+  // Fetch existing transaction details before cancelling
+  const { data: tx } = await (supabase as any)
+    .from('accounting_transactions')
+    .select('villa_id, transaction_date, entity_type, transaction_type')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await (supabase as any)
     .from('accounting_transactions')
     .update({ status: 'cancelled' })
     .eq('id', id);
   if (error) throw new Error(error.message);
+
+  // Trigger statement recalculation
+  try {
+    if (tx && tx.entity_type === 'villa' && tx.villa_id && tx.transaction_date) {
+      const checkIn = new Date(tx.transaction_date);
+      const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+      const { autoRecalculateStatement } = await import('@/lib/actions/statement-actions');
+      await autoRecalculateStatement(tx.villa_id, billingMonthStr);
+    }
+  } catch (stmtErr) {
+    console.error('[StatementAuto] Recalculation failed in cancelTransaction:', stmtErr);
+  }
 
   revalidatePath('/accounting');
   return { success: true };

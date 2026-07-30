@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
 import { logApiCall } from '@/lib/beds24/client';
+import { convertToUsd } from '@/lib/utils/exchange-rate';
+import { autoRecalculateStatement } from '@/lib/actions/statement-actions';
 
 // Beds24 sends a secret in a header when Auto Actions are configured.
 // Set BEDS24_WEBHOOK_SECRET in .env.local and configure the same value
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
   const supabase = (await createServerSupabaseClient()) as any;
 
   const results: { id: number; outcome: 'created' | 'updated' | 'skipped'; reason?: string }[] = [];
+  const villasToRecalculate = new Set<string>();
 
   for (const b24 of bookings) {
     const bookingId = b24?.id;
@@ -107,13 +109,13 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    // ── 4. Look up the Taksu villa mapping ──────────────────────────────────
+    // ── 4. Look up the Taksu villa mapping (including currency field) ─────────
     const { data: villa } = await supabase
       .from('villas')
-      .select('id')
+      .select('id, currency')
       .eq('beds24_property_id', propertyId)
       .eq('beds24_room_id', roomId)
-      .maybeSingle(); // use maybeSingle to avoid 406 error when no row found
+      .maybeSingle();
 
     if (!villa) {
       console.warn(
@@ -128,9 +130,14 @@ export async function POST(req: NextRequest) {
     const guestLast = String(b24.lastName || '').trim();
     const guestName = [guestFirst, guestLast].filter(Boolean).join(' ') || 'Unknown Guest';
 
-    // Beds24 `price` is the total booking price in the account's default currency.
-    // We store it as-is; currency conversion can be handled in accounting.
-    const totalPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
+    // Financial Mapping: Convert currency to USD
+    const bookingCurrency = b24.currency || villa.currency || 'IDR';
+    const rawPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
+    const rawCommission = typeof b24.commission === 'number' ? b24.commission : parseFloat(b24.commission) || 0;
+
+    const totalPaidByGuestUsd = await convertToUsd(rawPrice, bookingCurrency);
+    const channelCommissionUsd = await convertToUsd(rawCommission, bookingCurrency);
+    const phrTaxUsd = totalPaidByGuestUsd * 0.10;
 
     const status = mapB24StatusToTaksu(b24.status);
     let channel = mapB24Channel(b24.apiSource, b24.referrer);
@@ -145,7 +152,9 @@ export async function POST(req: NextRequest) {
       check_in_date: b24.arrival,
       check_out_date: b24.departure,
       guest_full_name: guestName,
-      total_paid_by_guest_usd: totalPrice,
+      total_paid_by_guest_usd: totalPaidByGuestUsd,
+      channel_commission_usd: channelCommissionUsd,
+      phr_tax_usd: phrTaxUsd,
       channel,
       status,
       booked_at: isValidDate(b24.bookingTime) ? b24.bookingTime : new Date().toISOString(),
@@ -179,6 +188,21 @@ export async function POST(req: NextRequest) {
         console.log(`[Webhook/beds24] Created booking ${bookingId}`);
         results.push({ id: bookingId, outcome: 'created' });
       }
+    }
+
+    // Add statement month to recalculate queue
+    const checkIn = new Date(b24.arrival);
+    const billingMonthStr = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}-01`;
+    villasToRecalculate.add(`${villa.id}_${billingMonthStr}`);
+  }
+
+  // Automatically recalculate monthly statements for any modified months
+  for (const key of villasToRecalculate) {
+    const [vId, billingMonth] = key.split('_');
+    try {
+      await autoRecalculateStatement(vId, billingMonth);
+    } catch (stmtErr) {
+      console.error(`[Webhook/beds24] Failed to auto-recalculate statement for villa ${vId} month ${billingMonth}:`, stmtErr);
     }
   }
 
