@@ -92,6 +92,7 @@ export default async function CalendarPage({
       <div className="mt-6">
         {villaId ? (
           <MonthCalendar 
+            key={villaId}
             villaId={villaId}
             initialBookings={initialBookings} 
             fetchBookings={fetchBookingsForMonth}
