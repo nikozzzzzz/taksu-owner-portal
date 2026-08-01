@@ -102,10 +102,17 @@ export async function logApiCall(
     console.error('[Beds24] Failed to save API log to file:', err);
   }
 }
+async function getSupabaseClient() {
+  try {
+    return await createServerSupabaseClient();
+  } catch (err) {
+    return createAdminSupabaseClient();
+  }
+}
 
 
 async function loadCredentials(): Promise<{ token: string; refreshToken: string; id: string } | null> {
-  const supabase = (await createServerSupabaseClient()) as any;
+  const supabase = (await getSupabaseClient()) as any;
   const { data, error } = await supabase
     .from('beds24_credentials')
     .select('id, token, refresh_token')
@@ -119,7 +126,7 @@ async function loadCredentials(): Promise<{ token: string; refreshToken: string;
 }
 
 async function saveCredentials(id: string, token: string, refreshToken: string): Promise<void> {
-  const supabase = (await createServerSupabaseClient()) as any;
+  const supabase = (await getSupabaseClient()) as any;
   const { error } = await supabase
     .from('beds24_credentials')
     .update({ token, refresh_token: refreshToken, last_sync_at: new Date().toISOString() })
@@ -132,7 +139,7 @@ async function saveCredentials(id: string, token: string, refreshToken: string):
 }
 
 async function insertCredentials(token: string, refreshToken: string): Promise<void> {
-  const supabase = (await createServerSupabaseClient()) as any;
+  const supabase = (await getSupabaseClient()) as any;
   const { error } = await supabase
     .from('beds24_credentials')
     .insert({ token, refresh_token: refreshToken, last_sync_at: new Date().toISOString() });

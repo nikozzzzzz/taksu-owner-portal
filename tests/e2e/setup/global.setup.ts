@@ -105,6 +105,89 @@ async function globalSetup(config: FullConfig) {
     }
   }
   
+  // --- Seed required test data for E2E tests ---
+  console.log('Ensuring test data (Taksu Bambu Villa & Statements)...');
+  
+  // Find the owner ID for test.investor@example.com
+  const { data: testOwner } = await supabase
+    .from('owners')
+    .select('id')
+    .eq('email', 'test.investor@example.com')
+    .maybeSingle();
+
+  if (testOwner) {
+    // 1. Ensure test pool exists
+    await supabase.from('pools').upsert({
+      id: '22222222-2222-2222-2222-222222222222',
+      name: '2BR Garden View Pool',
+      villa_type: '2br'
+    });
+
+    // 2. Ensure Taksu Bambu Villa exists and is owned by the test investor
+    await supabase.from('villas').upsert({
+      id: '33333333-3333-3333-3333-333333333333',
+      internal_code: 'T2BR-04',
+      display_name: 'Taksu Bambu Villa',
+      villa_type: '2br',
+      bedrooms: 2,
+      bathrooms: 2,
+      max_guests: 4,
+      has_private_pool: true,
+      view_type: 'garden',
+      square_meters: 120,
+      phase: 1,
+      ownership_type: 'investor_owned',
+      owner_id: testOwner.id,
+      pool_id: '22222222-2222-2222-2222-222222222222',
+      base_price_usd: 185.00,
+      premium_multiplier: 0.05,
+      estimated_market_value_usd: 210000.00,
+      status: 'active'
+    });
+
+    // 3. Ensure monthly statements for August 2026 exist
+    await supabase.from('monthly_statements').upsert({
+      villa_id: '33333333-3333-3333-3333-333333333333',
+      owner_id: testOwner.id,
+      billing_month: '2026-08-01',
+      gross_revenue_usd: 3330.00,
+      revenue_by_channel: { airbnb: 1480, booking: 1850 },
+      channel_commission_usd: 360.00,
+      phr_tax_usd: 333.00,
+      net_revenue_usd: 2637.00,
+      total_opex_usd: 728.00,
+      opex_breakdown: {
+        housekeeping: { amount: 215, items: 5 },
+        linens: { amount: 72, items: 3 },
+        utilities: { amount: 185, items: 3 },
+        pool_maintenance: { amount: 48, items: 4 },
+        garden: { amount: 35, items: 1 },
+        welcome_basket: { amount: 75, items: 5 },
+        supplies: { amount: 58, items: 2 },
+        allocated_staff: { amount: 40, items: 1 }
+      },
+      net_profit_usd: 1909.00,
+      management_fee_usd: 381.80,
+      management_fee_rate: 0.20,
+      owner_gross_payout_usd: 1527.20,
+      pph26_rate: 0.10,
+      pph26_amount_usd: 152.72,
+      owner_net_payout_usd: 1374.48,
+      bookings_count: 4,
+      occupied_nights: 19,
+      available_nights: 31,
+      occupancy_rate: 0.6129,
+      adr_usd: 175.26,
+      revpar_usd: 107.40,
+      status: 'sent_to_owner',
+      payment_scheduled_at: '2026-09-15'
+    });
+    
+    console.log('Successfully ensured E2E test data.');
+  } else {
+    console.error('Could not find test investor owner to link E2E test data.');
+  }
+
   console.log('--- Global Setup Complete ---');
 }
 

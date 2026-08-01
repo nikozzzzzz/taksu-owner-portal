@@ -34,11 +34,14 @@ test.describe('Booking Calendar Flow', () => {
     // and is safe to create local bookings on (bypassing read_only restrictions)
     await villaSelector.click();
     await page.getByRole('option', { name: 'Taksu Bambu Villa' }).click();
-    await page.waitForTimeout(1000); // Wait for React state to update selectedVilla
+    await expect(page).toHaveURL(/.*villaId=33333333-3333-3333-3333-333333333333.*/, { timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1500); // Wait for React state to fully settle
     
     // 4. Click an empty date in the grid to create a booking
     // We'll right-click the date and then click "Create Booking/Block"
-    await page.getByText('15', { exact: true }).first().click({ button: 'right' });
+    const dayCell = page.locator('div[class*="min-h-"]').getByText('22', { exact: true }).first();
+    await dayCell.click({ button: 'right' });
     await page.getByText('Create Booking/Block').click();
 
     // 5. Modal should open

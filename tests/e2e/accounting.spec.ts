@@ -215,7 +215,7 @@ test.describe('Accounting Module', () => {
       await dialog.locator('button[type="submit"]').click();
 
       // Should see the invoice in list
-      await expect(page.locator('text=E2E Test Client')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('text=E2E Test Client').first()).toBeVisible({ timeout: 15000 });
     });
 
     test('Accounting link appears in sidebar for admin', async ({ page }) => {
