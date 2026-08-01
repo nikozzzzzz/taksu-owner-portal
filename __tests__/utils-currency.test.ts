@@ -1,20 +1,20 @@
 import { formatCurrency, formatIDR, formatPercent, getCurrencySymbol, formatNumber } from '@/lib/utils/currency';
 
 describe('Currency Utils', () => {
-  it('formats currency default (USD)', () => {
+  it('formats currency default (Base/IDR)', () => {
     // Note: Intl.NumberFormat might include narrow no-break space or non-breaking space depending on node version,
-    // so we use regex or strip spaces if we want a precise match, but typically for en-US it's straight up "$1,374.48".
+    // so we use regex or strip spaces if we want a precise match, but typically for en-US it's straight up "IDR1,374".
     const result = formatCurrency(1374.48);
-    expect(result.replace(/\s/g, '')).toBe('$1,374.48');
+    expect(result.replace(/\s/g, '').replace(/[\u202F\u00A0]/g, '')).toBe('IDR1,374');
   });
   
   it('formats currency EUR', () => {
     const result = formatCurrency(1374.48, { currency: 'EUR' });
-    expect(result.replace(/\s/g, '')).toBe('€1,374.48');
+    expect(result.replace(/\s/g, '').replace(/[\u202F\u00A0]/g, '')).toBe('€1,374.48');
   });
 
   it('formats compact currency', () => {
-    const result = formatCurrency(1500, { compact: true });
+    const result = formatCurrency(1500, { currency: 'USD', compact: true });
     expect(result).toBe('$1.5K');
   });
 

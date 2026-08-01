@@ -137,15 +137,8 @@ export async function upsertTransaction(payload: Partial<TransactionInput>) {
   await requireAccountingRole();
   const supabase = await createServerSupabaseClient();
 
-  // Compute amount_usd
-  const amount = Number(payload.amount) || 0;
-  const fxRate = Number(payload.fx_rate) || 1;
-  let amountUsd = amount;
-  if (payload.currency === 'IDR') {
-    amountUsd = amount / fxRate;
-  } else if (payload.currency === 'EUR') {
-    amountUsd = amount * fxRate;
-  }
+  // Compute amount_usd (no conversion to USD, count everything as chosen currency)
+  const amountUsd = Number(payload.amount) || 0;
 
   const toValidate = {
     ...payload,

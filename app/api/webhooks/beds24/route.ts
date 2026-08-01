@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logApiCall } from '@/lib/beds24/client';
-import { convertToUsd } from '@/lib/utils/exchange-rate';
 import { autoRecalculateStatement } from '@/lib/actions/statement-actions';
 
 // Beds24 sends a secret in a header when Auto Actions are configured.
@@ -130,13 +129,12 @@ export async function POST(req: NextRequest) {
     const guestLast = String(b24.lastName || '').trim();
     const guestName = [guestFirst, guestLast].filter(Boolean).join(' ') || 'Unknown Guest';
 
-    // Financial Mapping: Convert currency to USD
-    const bookingCurrency = b24.currency || villa.currency || 'IDR';
+    // Financial Mapping: Count money directly as the villa/system chosen currency without converting to USD
     const rawPrice = typeof b24.price === 'number' ? b24.price : parseFloat(b24.price) || 0;
     const rawCommission = typeof b24.commission === 'number' ? b24.commission : parseFloat(b24.commission) || 0;
 
-    const totalPaidByGuestUsd = await convertToUsd(rawPrice, bookingCurrency);
-    const channelCommissionUsd = await convertToUsd(rawCommission, bookingCurrency);
+    const totalPaidByGuestUsd = rawPrice;
+    const channelCommissionUsd = rawCommission;
     const phrTaxUsd = totalPaidByGuestUsd * 0.10;
 
     const status = mapB24StatusToTaksu(b24.status);
