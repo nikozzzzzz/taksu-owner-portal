@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { logSystemEvent } from '@/lib/system-events';
 
 const BEDS24_API_URL = 'https://api.beds24.com/v2';
 
@@ -29,6 +30,12 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error || !creds) {
+      await logSystemEvent({
+        category: 'cron',
+        level: 'warning',
+        title: 'Beds24 heartbeat: No credentials found',
+        body: 'Cron token refresh skipped because Beds24 is disconnected.',
+      });
       return NextResponse.json(
         { error: 'No Beds24 credentials found. Please connect via Admin > Integrations.' },
         { status: 404 }
@@ -44,6 +51,12 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errText = await response.text();
       console.error('[Beds24 Refresh] Token refresh failed:', errText);
+      await logSystemEvent({
+        category: 'cron',
+        level: 'error',
+        title: 'Beds24 heartbeat: Token refresh failed',
+        body: `HTTP ${response.status}: ${errText.substring(0, 200)}`,
+      });
       return NextResponse.json(
         { error: `Beds24 token refresh failed (${response.status}). You may need to reconnect via Admin > Integrations.` },
         { status: 502 }
@@ -52,6 +65,11 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
     if (!data.token) {
+      await logSystemEvent({
+        category: 'cron',
+        level: 'error',
+        title: 'Beds24 heartbeat: Empty token returned',
+      });
       return NextResponse.json({ error: 'No token returned from Beds24' }, { status: 502 });
     }
 
@@ -70,9 +88,21 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[Beds24 Refresh] Token refreshed successfully via cron heartbeat.');
+    await logSystemEvent({
+      category: 'cron',
+      level: 'success',
+      title: 'Beds24 cron heartbeat: Token refreshed',
+      body: 'Token renewed successfully via automated cron run.',
+    });
     return NextResponse.json({ success: true, refreshed_at: new Date().toISOString() });
   } catch (err: any) {
     console.error('[Beds24 Refresh] Unexpected error:', err);
+    await logSystemEvent({
+      category: 'cron',
+      level: 'error',
+      title: 'Beds24 heartbeat error',
+      body: err.message,
+    });
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

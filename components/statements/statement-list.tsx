@@ -77,7 +77,8 @@ export function StatementList({ statements, currentYear }: StatementListProps) {
           ) : (
             <div className="divide-y divide-border">
               {(selectedYear !== 'all' ? filtered : statements).map((statement) => {
-                const date = new Date(statement.billing_month);
+                const [year, month] = statement.billing_month.split('-').map(Number);
+                const date = new Date(year, (month || 1) - 1, 1);
                 const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
                 
                 return (

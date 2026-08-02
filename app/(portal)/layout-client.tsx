@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PortalSidebar } from '@/components/layout/portal-sidebar';
 import { PortalHeader } from '@/components/layout/portal-header';
 import { IdleTimer } from '@/components/auth/idle-timer';
+import { SystemStatusBar } from '@/components/system/system-status-bar';
 
 interface PortalLayoutClientProps {
   ownerName: string;
@@ -19,6 +20,7 @@ export function PortalLayoutClient({
   children,
 }: PortalLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isAdmin = role === 'admin' || role === 'root';
 
   return (
     <div className="flex h-screen overflow-hidden bg-taksu-cream">
@@ -52,10 +54,15 @@ export function PortalLayoutClient({
           onMenuToggle={() => setSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
+        {/* pb-7 reserves space above the status bar */}
+        <main className={`flex-1 overflow-y-auto scrollbar-thin ${isAdmin ? 'pb-7' : ''}`}>
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      {/* System Status Bar — admin only */}
+      {isAdmin && <SystemStatusBar />}
     </div>
   );
 }
+

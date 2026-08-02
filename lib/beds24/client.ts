@@ -1,5 +1,6 @@
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { logSystemEvent } from '@/lib/system-events';
 
 const BEDS24_API_URL = 'https://api.beds24.com/v2';
 
@@ -102,12 +103,8 @@ export async function logApiCall(
     console.error('[Beds24] Failed to save API log to file:', err);
   }
 }
-async function getSupabaseClient() {
-  try {
-    return await createServerSupabaseClient();
-  } catch (err) {
-    return createAdminSupabaseClient();
-  }
+function getSupabaseClient() {
+  return createAdminSupabaseClient();
 }
 
 
@@ -160,6 +157,16 @@ async function doRefreshToken(refreshToken: string, credentialId: string): Promi
   if (!response.ok) {
     const errText = await response.text();
     console.error(`[Beds24] Token refresh failed (${response.status}):`, errText);
+
+    // Log failure
+    logSystemEvent({
+      category: 'beds24',
+      level: 'error',
+      title: 'Beds24 token refresh failed',
+      body: `HTTP ${response.status}: ${errText.substring(0, 200)}`,
+      metadata: { status: response.status },
+    }).catch(() => {});
+
     throw new Error(`Beds24 token refresh failed: ${response.statusText}`);
   }
 
@@ -170,6 +177,15 @@ async function doRefreshToken(refreshToken: string, credentialId: string): Promi
 
   await saveCredentials(credentialId, data.token, refreshToken);
   console.log('[Beds24] Token refreshed successfully.');
+
+  // Log success
+  logSystemEvent({
+    category: 'beds24',
+    level: 'success',
+    title: 'Beds24 token refreshed',
+    body: 'Access token successfully renewed via refresh token.',
+  }).catch(() => {});
+
   return data.token;
 }
 

@@ -90,7 +90,7 @@ export async function sendTelegramMessage(
  */
 export async function sendTelegramNotification(
   htmlText: string,
-  type: 'api' | 'error' | 'startup'
+  type: 'api' | 'error' | 'startup' | 'system'
 ): Promise<boolean> {
   const settings = await getTelegramSettings();
   if (!settings || !settings.is_enabled || !settings.bot_token || !settings.chat_id) {
@@ -102,6 +102,7 @@ export async function sendTelegramNotification(
   if (type === 'api') emoji = '🔌';
   if (type === 'error') emoji = '🚨';
   if (type === 'startup') emoji = '🚀';
+  if (type === 'system') emoji = '⚙️';
 
   const fullText = `${emoji} <b>[Taksu Portal - ${type.toUpperCase()}]</b>\n\n${htmlText}`;
   return sendTelegramMessage(settings.bot_token, settings.chat_id, fullText);

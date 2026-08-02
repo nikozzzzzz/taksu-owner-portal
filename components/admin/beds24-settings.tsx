@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,23 +13,34 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  XCircle,
   Download,
   Clock,
   Building2,
   CalendarCheck,
   ArrowDownToLine,
   ArrowUpFromLine,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import {
   connectBeds24,
   syncBeds24Properties,
   fullSyncBeds24,
   getBeds24SyncHistory,
+  getBeds24Status,
 } from '@/lib/actions/beds24-actions';
+
+type Staleness = 'healthy' | 'warning' | 'stale' | 'error' | undefined;
 
 interface Status {
   connected: boolean;
   lastConnected: string | null;
+  lastSyncAt?: string | null;
+  tokenAgeHours?: number | null;
+  staleness?: Staleness;
+  nextSyncAt?: string | null;
 }
 
 interface SyncedProperty {
@@ -52,10 +63,106 @@ interface SyncLogEntry {
   finished_at?: string;
 }
 
+// ── Health Banner ─────────────────────────────────────────────────────────────
+
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return 'never';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function Beds24HealthBanner({ initialStatus }: { initialStatus: Status }) {
+  const [status, setStatus] = useState<Status>(initialStatus);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const s = await getBeds24Status();
+      setStatus(s as Status);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Auto-refresh every 60s
+  useEffect(() => {
+    const id = setInterval(refresh, 60_000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  const staleness = status.staleness;
+
+  const bannerStyle =
+    staleness === 'healthy' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+    staleness === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' :
+    staleness === 'stale'   ? 'border-orange-200 bg-orange-50 text-orange-800' :
+    staleness === 'error'   ? 'border-red-200 bg-red-50 text-red-800' :
+    'border-gray-200 bg-gray-50 text-gray-600';
+
+  const BannerIcon =
+    staleness === 'healthy' ? ShieldCheck :
+    staleness === 'warning' ? AlertTriangle :
+    staleness === 'stale'   ? AlertCircle :
+    staleness === 'error'   ? XCircle :
+    AlertCircle;
+
+  const bannerTitle =
+    staleness === 'healthy' ? 'Connection healthy' :
+    staleness === 'warning' ? 'Token aging — refresh recommended' :
+    staleness === 'stale'   ? 'Token stale — cron may not be running' :
+    staleness === 'error'   ? 'Not connected — credentials missing' :
+    'Status unknown';
+
+  return (
+    <div className={`rounded-lg border px-4 py-3 ${bannerStyle}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <BannerIcon className="h-4 w-4 mt-0.5 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-semibold text-sm">{bannerTitle}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-xs opacity-80">
+              <div>
+                <span className="font-medium">Token age:</span>{' '}
+                {status.tokenAgeHours != null ? `${status.tokenAgeHours}h` : '–'}
+              </div>
+              <div>
+                <span className="font-medium">Refreshed:</span>{' '}
+                {timeAgo(status.lastConnected)}
+              </div>
+              <div>
+                <span className="font-medium">Last sync:</span>{' '}
+                {timeAgo(status.lastSyncAt)}
+              </div>
+              <div>
+                <span className="font-medium">Next sync:</span>{' '}
+                {status.nextSyncAt ? timeAgo(status.nextSyncAt).replace(' ago', '') + ' (est)' : '–'}
+              </div>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={refresh}
+          className="shrink-0 p-1 rounded hover:bg-black/5 transition-colors"
+          title="Refresh status"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Settings Component ───────────────────────────────────────────────────
+
 export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
   const [status, setStatus] = useState<Status>(initialStatus);
   const [inviteCode, setInviteCode] = useState('');
   const [connecting, setConnecting] = useState(false);
+
   const [reconnecting, setReconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [fullSyncing, setFullSyncing] = useState(false);
@@ -157,7 +264,11 @@ export function Beds24Settings({ initialStatus }: { initialStatus: Status }) {
 
   return (
     <div className="space-y-6">
+      {/* Permanent health status banner — always visible */}
+      <Beds24HealthBanner initialStatus={status} />
+
       {/* Alert messages */}
+
       {errorMsg && (
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />

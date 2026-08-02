@@ -1,10 +1,11 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import {
   getBeds24Properties,
   getBeds24Rooms,
   getBeds24Bookings,
 } from '@/lib/beds24/client';
 import { autoRecalculateStatement } from '@/lib/actions/statement-actions';
+import { logSystemEvent } from '@/lib/system-events';
 
 // Beds24 booking status codes → Taksu
 const BEDS24_STATUS: Record<string, string> = {
@@ -31,13 +32,7 @@ function isValidDate(d: unknown): boolean {
 }
 
 export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhook' = 'manual') {
-  let supabase: any;
-  try {
-    supabase = (await createServerSupabaseClient()) as any;
-  } catch (err) {
-    const { createAdminSupabaseClient } = await import('@/lib/supabase/admin');
-    supabase = createAdminSupabaseClient();
-  }
+  const supabase = createAdminSupabaseClient() as any;
 
   // ── Create sync log entry ───────────────────────────────────────────────────
   const { data: logRow, error: logErr } = await supabase
@@ -51,6 +46,14 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
   }
 
   const logId: string | null = logRow?.id ?? null;
+
+  // Log sync start
+  logSystemEvent({
+    category: 'sync',
+    level: 'info',
+    title: `Beds24 sync started (${triggeredBy})`,
+    metadata: { triggered_by: triggeredBy, log_id: logId },
+  }).catch(() => {});
 
   const counters = {
     properties_found: 0,
@@ -314,6 +317,16 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
     }
 
     console.log('[Beds24/sync] Completed:', counters);
+
+    // Log success system event
+    logSystemEvent({
+      category: 'sync',
+      level: 'success',
+      title: `Beds24 sync completed (${triggeredBy})`,
+      body: `${counters.bookings_created} created, ${counters.bookings_updated} updated, ${counters.bookings_skipped} skipped`,
+      metadata: { triggered_by: triggeredBy, ...counters },
+    }).catch(() => {});
+
     return { success: true, data: counters };
   } catch (err: any) {
     console.error('[Beds24/sync] Fatal error:', err);
@@ -321,6 +334,15 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
     import('@/lib/telegram').then(({ logErrorToTelegram }) => {
       logErrorToTelegram(err, 'Beds24 Sync Fatal Error');
     }).catch(e => console.error('[Telegram] Import fail:', e));
+
+    // Log error system event  
+    logSystemEvent({
+      category: 'sync',
+      level: 'error',
+      title: `Beds24 sync failed (${triggeredBy})`,
+      body: err.message,
+      metadata: { triggered_by: triggeredBy, error: err.message },
+    }).catch(() => {});
 
     if (logId) {
       await supabase

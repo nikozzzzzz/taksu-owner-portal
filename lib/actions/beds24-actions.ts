@@ -45,18 +45,46 @@ export async function getBeds24Status() {
       .limit(1)
       .single();
 
+    if (!data) {
+      return { connected: false, lastConnected: null, staleness: 'error' as const, tokenAgeHours: null, nextSyncAt: null };
+    }
+
+    const lastRefreshed = data.last_sync_at || data.updated_at || null;
+    const tokenAgeHours = lastRefreshed
+      ? (Date.now() - new Date(lastRefreshed).getTime()) / 3_600_000
+      : null;
+
+    const staleness: 'healthy' | 'warning' | 'stale' | 'error' =
+      tokenAgeHours == null ? 'error' :
+      tokenAgeHours < 12   ? 'healthy' :
+      tokenAgeHours < 24   ? 'warning' :
+      'stale';
+
+    // Predict next cron run (every 2h from last run)
+    const nextSyncAt = lastRefreshed
+      ? new Date(new Date(lastRefreshed).getTime() + 2 * 3_600_000).toISOString()
+      : null;
+
     return {
-      connected: !!data,
-      lastConnected: data?.last_sync_at || data?.updated_at || null,
+      connected: true,
+      lastConnected: lastRefreshed,
+      lastSyncAt: data.last_sync_at ?? null,
+      tokenAgeHours: tokenAgeHours ? Math.round(tokenAgeHours * 10) / 10 : null,
+      staleness,
+      nextSyncAt,
     };
   } catch (error: any) {
     console.error('[beds24-actions] getBeds24Status error:', error);
     return {
       connected: false,
       lastConnected: null,
+      staleness: 'error' as const,
+      tokenAgeHours: null,
+      nextSyncAt: null,
     };
   }
 }
+
 
 /**
  * Fetch all Beds24 properties and persist mappings back to villas table.
