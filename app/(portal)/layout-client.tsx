@@ -8,14 +8,14 @@ import { SystemStatusBar } from '@/components/system/system-status-bar';
 
 interface PortalLayoutClientProps {
   ownerName: string;
-  villaName?: string;
+  villas?: { id: string; display_name: string }[];
   role?: string;
   children: React.ReactNode;
 }
 
 export function PortalLayoutClient({
   ownerName,
-  villaName,
+  villas = [],
   role = 'guest',
   children,
 }: PortalLayoutClientProps) {
@@ -50,7 +50,7 @@ export function PortalLayoutClient({
       <div className="flex flex-1 flex-col overflow-hidden">
         <PortalHeader
           ownerName={ownerName}
-          villaName={villaName}
+          villas={villas}
           onMenuToggle={() => setSidebarOpen(true)}
         />
 

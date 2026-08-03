@@ -5,7 +5,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import type { AnalyticsData } from '@/lib/calculations/analytics-calc';
 
 interface RevenueTrendChartProps {
-  data: AnalyticsData['trendData'];
+  data: AnalyticsData['dailyTrendData'];
 }
 
 export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
@@ -22,42 +22,51 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
             <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis 
-                dataKey="month" 
+                dataKey="date" 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#6B7B6B', fontSize: 12 }}
                 dy={10}
+                minTickGap={30}
               />
               <YAxis 
                 yAxisId="left"
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#6B7B6B', fontSize: 12 }}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => {
+                  if (value >= 1000000) {
+                    return `Rp${(value / 1000000).toFixed(1)}M`;
+                  }
+                  if (value >= 1000) {
+                    return `Rp${(value / 1000).toFixed(0)}k`;
+                  }
+                  return `Rp${value}`;
+                }}
               />
               <Tooltip 
                 contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                formatter={(value: number) => [`Rp${value.toLocaleString()}`, '']}
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               <Line 
                 yAxisId="left"
                 type="monotone" 
-                dataKey="gross_revenue" 
+                dataKey="gross_revenue_idr" 
                 name="Gross Revenue" 
                 stroke="#6B7B6B" 
                 strokeWidth={2}
-                dot={{ r: 4, fill: '#6B7B6B', strokeWidth: 0 }}
+                dot={false}
                 activeDot={{ r: 6 }}
               />
               <Line 
                 yAxisId="left"
                 type="monotone" 
-                dataKey="net_payout" 
+                dataKey="net_payout_idr" 
                 name="Net Payout" 
                 stroke="#2C3E2C" 
                 strokeWidth={3}
-                dot={{ r: 4, fill: '#2C3E2C', strokeWidth: 0 }}
+                dot={false}
                 activeDot={{ r: 6 }}
               />
             </LineChart>

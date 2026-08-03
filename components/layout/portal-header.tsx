@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Menu, Bell, ChevronDown, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -9,12 +10,22 @@ import { cn } from '@/lib/utils/cn';
 
 interface PortalHeaderProps {
   ownerName: string;
-  villaName?: string;
+  villas?: { id: string; display_name: string }[];
   onMenuToggle?: () => void;
 }
 
-export function PortalHeader({ ownerName, villaName, onMenuToggle }: PortalHeaderProps) {
+export function PortalHeader({ ownerName, villas = [], onMenuToggle }: PortalHeaderProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const villaId = searchParams.get('villaId');
+  
+  let currentVillaName = villas.length > 0 ? villas[0].display_name : undefined;
+  if (villaId === 'all') {
+    currentVillaName = 'All Properties';
+  } else if (villaId) {
+    const matched = villas.find(v => v.id === villaId);
+    if (matched) currentVillaName = matched.display_name;
+  }
 
   const initials = ownerName
     .split(' ')
@@ -36,11 +47,13 @@ export function PortalHeader({ ownerName, villaName, onMenuToggle }: PortalHeade
 
       {/* Villa name (breadcrumb style) */}
       <div className="flex-1">
-        {villaName && (
+        {currentVillaName && (
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-taksu-sage sm:block">Your villa</span>
+            <span className="hidden text-xs text-taksu-sage sm:block">
+              {currentVillaName === 'All Properties' ? 'Portfolio' : 'Your villa'}
+            </span>
             <span className="hidden text-xs text-taksu-sage/50 sm:block">/</span>
-            <span className="text-sm font-medium text-taksu-forest">{villaName}</span>
+            <span className="text-sm font-medium text-taksu-forest">{currentVillaName}</span>
           </div>
         )}
       </div>

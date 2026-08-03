@@ -23,6 +23,11 @@ export interface AnalyticsData {
     net_payout: number;
     occupancy: number;
   }>;
+  dailyTrendData: Array<{
+    date: string;
+    gross_revenue_idr: number;
+    net_payout_idr: number;
+  }>;
   channelMix: Array<{
     name: string;
     value: number;
@@ -30,7 +35,12 @@ export interface AnalyticsData {
   }>;
 }
 
-export function calculateAnalytics(statements: StatementRow[]): AnalyticsData {
+export function calculateAnalytics(
+  data: { statements: StatementRow[]; bookings: any[] },
+  exchangeRate: number = 15500
+): AnalyticsData {
+  const { statements, bookings } = data;
+
   if (statements.length === 0) {
     return {
       total_revenue: 0,
@@ -39,6 +49,7 @@ export function calculateAnalytics(statements: StatementRow[]): AnalyticsData {
       avg_adr: 0,
       avg_revpar: 0,
       trendData: [],
+      dailyTrendData: [],
       channelMix: [],
     };
   }
@@ -56,6 +67,27 @@ export function calculateAnalytics(statements: StatementRow[]): AnalyticsData {
 
   const trendData: AnalyticsData['trendData'] = [];
   const channelsAggregated: Record<string, number> = {};
+
+  // First, map daily gross revenue from bookings
+  const dailyGrossMap: Record<string, number> = {};
+  for (const b of bookings) {
+    if (!b.check_in_date || !b.check_out_date || !b.nights || b.nights === 0) continue;
+    
+    // We use net_to_villa_usd because that aligns with gross revenue before management fee
+    const revenueUsd = Number(b.net_to_villa_usd || b.total_paid_by_guest_usd || 0);
+    const dailyRevenueIdr = (revenueUsd / b.nights) * exchangeRate;
+    
+    // add to each day of the stay (excluding checkout date)
+    const checkIn = new Date(b.check_in_date);
+    for (let i = 0; i < b.nights; i++) {
+      const d = new Date(checkIn);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      dailyGrossMap[dateStr] = (dailyGrossMap[dateStr] || 0) + dailyRevenueIdr;
+    }
+  }
+
+  const dailyTrendData: AnalyticsData['dailyTrendData'] = [];
 
   for (const st of statements) {
     total_revenue += st.gross_revenue_usd;
@@ -91,6 +123,28 @@ export function calculateAnalytics(statements: StatementRow[]): AnalyticsData {
       net_payout: Number(st.owner_net_payout_usd),
       occupancy: Number(st.occupancy_rate),
     });
+
+    // Daily formatting for this month
+    const year = date.getFullYear();
+    const monthIndex = date.getMonth(); // 0-based
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate(); // gets last day of the month
+
+    const dailyNetIDR = (Number(st.owner_net_payout_usd) * exchangeRate) / daysInMonth;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dailyDate = new Date(year, monthIndex, day);
+      // yyyy-mm-dd format for looking up dailyGrossMap
+      const dateStr = dailyDate.toISOString().split('T')[0];
+      const formattedDate = dailyDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const actualGrossIDR = dailyGrossMap[dateStr] || 0;
+      
+      dailyTrendData.push({
+        date: formattedDate,
+        gross_revenue_idr: Math.round(actualGrossIDR),
+        net_payout_idr: Math.round(dailyNetIDR),
+      });
+    }
   }
 
   const avg_occupancy = total_available_nights > 0 ? total_occupied_nights / total_available_nights : 0;
@@ -121,6 +175,7 @@ export function calculateAnalytics(statements: StatementRow[]): AnalyticsData {
     avg_adr,
     avg_revpar,
     trendData,
+    dailyTrendData,
     channelMix,
   };
 }
