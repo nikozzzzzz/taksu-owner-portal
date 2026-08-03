@@ -5,6 +5,8 @@ import { useChat } from 'ai/react';
 import { X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AiChatSidebarProps {
   villaId: string;
@@ -61,7 +63,9 @@ export function AiChatSidebar({ villaId, selectedDates }: AiChatSidebarProps) {
                   {m.role === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
                   <span>{m.role === 'user' ? 'You' : 'AI Assistant'}</span>
                 </div>
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                <div className={`prose prose-sm max-w-none ${m.role === 'user' ? 'prose-invert' : ''}`}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                </div>
                 {usage && (
                   <div className="mt-2 text-[10px] opacity-60 text-right border-t border-black/10 pt-1">
                     {usage.promptTokens} input, {usage.completionTokens} output

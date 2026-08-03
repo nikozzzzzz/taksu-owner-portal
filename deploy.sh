@@ -99,14 +99,6 @@ if [ "$SKIP_INSTALL" = "false" ]; then
   success "Dependencies installed"
 fi
 
-log "Building and restarting Docker container..."
-docker compose up -d --build
-success "Docker container deployed"
-
-log "Installing Playwright browsers..."
-npx playwright install chromium
-success "Playwright browsers installed"
-
 log "Stopping any legacy PM2 process..."
 if pm2 describe "$APP_NAME" &>/dev/null; then
   pm2 stop "$APP_NAME"
@@ -114,6 +106,14 @@ if pm2 describe "$APP_NAME" &>/dev/null; then
   pm2 save
 fi
 success "Legacy PM2 stopped"
+
+log "Building and restarting Docker container..."
+docker compose up -d --build
+success "Docker container deployed"
+
+log "Installing Playwright browsers..."
+npx playwright install chromium
+success "Playwright browsers installed"
 
 log "Waiting for app to become ready on localhost:3000..."
 MAX_WAIT=60
