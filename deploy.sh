@@ -106,6 +106,7 @@ if pm2 describe "$APP_NAME" &>/dev/null; then
 fi
 
 log "Building application (pnpm build)..."
+rm -rf .next
 pnpm build
 success "Build complete"
 
