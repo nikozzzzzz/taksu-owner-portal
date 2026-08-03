@@ -11,7 +11,18 @@
     "type-check": "tsc --noEmit",
     "test:unit": "jest",
     "test:coverage": "jest --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:local": "dotenv -e .env.dev next dev",
+    "build:dev": "dotenv -e .env.dev next build",
+    "start:dev": "dotenv -e .env.dev next start",
+    "test:e2e:dev": "dotenv -e .env.dev playwright test",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset",
+    "db:sync": "bash scripts/sync-db-from-prod.sh",
+    "deploy:dev-vm": "bash deploy-dev-vm.sh",
+    "deploy:dev-vm:no-tests": "bash deploy-dev-vm.sh --no-tests"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
@@ -76,6 +87,7 @@
     "tailwindcss": "^3.4.1",
     "@tailwindcss/typography": "^0.5.15",
     "tailwindcss-animate": "^1.0.7",
+    "dotenv-cli": "^7.4.2",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   }

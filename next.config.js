@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+
+// Build a CSP connect-src that includes whichever Supabase URL this environment uses.
+// In production this is https://portal.taksuliving.com; in local dev it is http://localhost:8000.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://portal.taksuliving.com';
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -52,7 +57,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' https://portal.taksuliving.com https://*.supabase.co wss://*.supabase.co",
+              `connect-src 'self' ${supabaseUrl} https://*.supabase.co wss://*.supabase.co`,
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

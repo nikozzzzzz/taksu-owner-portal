@@ -1,0 +1,141 @@
+# =============================================================================
+#  Supabase Local Dev Configuration
+# =============================================================================
+#  Generated for: Taksu Living Owner Portal
+#  See full config reference: https://supabase.com/docs/guides/cli/config
+#
+#  Usage:
+#    pnpm supabase:start    # Start all local Supabase services
+#    pnpm supabase:stop     # Stop all services
+#    pnpm supabase:status   # Show API URL, anon key, service_role key
+#    pnpm supabase:reset    # Re-run all migrations from scratch
+# =============================================================================
+
+[api]
+enabled = true
+# Port that Supabase API Gateway (Kong) listens on locally.
+# Must match NEXT_PUBLIC_SUPABASE_URL=http://localhost:8000 in .env.dev
+port = 8000
+# Schemas to expose via PostgREST
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+# Local PostgreSQL port (used by psql in db:sync script)
+port = 5432
+shadow_port = 5433
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[realtime]
+enabled = true
+ip_version = "IPv4"
+max_header_length = 4096
+
+[studio]
+enabled = true
+# Supabase Studio (visual DB browser) at http://localhost:54323
+port = 54323
+api_url = "http://localhost"
+openai_api_key = "env(OPENAI_API_KEY)"
+
+[inbucket]
+# Built-in fake SMTP server — view locally-sent emails at http://localhost:54324
+# This replaces Resend in local dev (no RESEND_API_KEY needed).
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+# This URL is used in email links (password reset, magic links, etc.)
+# Must match NEXT_PUBLIC_APP_URL in .env.dev
+site_url = "http://localhost:3000"
+# Allow additional redirect URLs for auth callbacks
+additional_redirect_urls = [
+  "http://localhost:3000/**",
+  "http://127.0.0.1:3000/**"
+]
+# JWT expiry (seconds) — 7 days matches production config
+jwt_expiry = 3600
+# Disable email confirmation requirement in dev for easier testing
+enable_signup = true
+# Relaxed rate limits for local dev
+[auth.rate_limits]
+email_sent = 10         # per minute
+sms_sent = 10
+token_refresh = 360
+sign_in_sign_ups = 60
+anonymous_sign_ins = 60
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false   # No email confirmation needed in dev
+max_frequency = "1s"           # Very short cooldown for dev testing
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+# Auth providers — only email/password is used (matches production setup)
+[auth.external.apple]
+enabled = false
+[auth.external.azure]
+enabled = false
+[auth.external.bitbucket]
+enabled = false
+[auth.external.discord]
+enabled = false
+[auth.external.facebook]
+enabled = false
+[auth.external.figma]
+enabled = false
+[auth.external.github]
+enabled = false
+[auth.external.gitlab]
+enabled = false
+[auth.external.google]
+enabled = false
+[auth.external.keycloak]
+enabled = false
+[auth.external.linkedin_oidc]
+enabled = false
+[auth.external.notion]
+enabled = false
+[auth.external.twitch]
+enabled = false
+[auth.external.twitter]
+enabled = false
+[auth.external.slack_oidc]
+enabled = false
+[auth.external.spotify]
+enabled = false
+[auth.external.workos]
+enabled = false
+[auth.external.zoom]
+enabled = false
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
+
+[analytics]
+enabled = false
+
+[experimental]
+orioledb_version = ""
+s3_host = "env(S3_HOST)"
+s3_region = "env(S3_REGION)"
+s3_access_key = "env(S3_ACCESS_KEY)"
+s3_secret_key = "env(S3_SECRET_KEY)"

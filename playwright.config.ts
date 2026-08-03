@@ -2,8 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Read from default ".env.local" file.
+// Load .env.dev first (dev overrides), then .env.local (prod defaults).
+// dotenv.config does not overwrite already-set variables, so whichever is
+// loaded first wins. When running via `pnpm test:e2e:dev`, dotenv-cli sets
+// the env before this file runs, so both loads below are effectively no-ops
+// in that case — this just provides a convenient fallback for direct `playwright test`.
+dotenv.config({ path: path.resolve(__dirname, '.env.dev') });
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
+
 
 /**
  * See https://playwright.dev/docs/test-configuration.
