@@ -28,6 +28,7 @@ interface TelegramConfig {
   chat_id: string;
   acl: number[];
   is_enabled: boolean;
+  report_system_usage_hourly: boolean;
   health_status: string;
   last_health_check: string | null;
 }
@@ -41,6 +42,7 @@ export function TelegramSettings({ initialSettings }: TelegramSettingsProps) {
   const [chatId, setChatId] = useState(initialSettings?.chat_id || '');
   const [botName, setBotName] = useState(initialSettings?.bot_name || '');
   const [isEnabled, setIsEnabled] = useState(initialSettings?.is_enabled || false);
+  const [reportHourly, setReportHourly] = useState(initialSettings?.report_system_usage_hourly || false);
   const [aclStr, setAclStr] = useState(initialSettings?.acl?.join(', ') || '');
   
   const [healthStatus, setHealthStatus] = useState(initialSettings?.health_status || 'unknown');
@@ -73,6 +75,7 @@ export function TelegramSettings({ initialSettings }: TelegramSettingsProps) {
         chat_id: chatId,
         acl: aclStr,
         is_enabled: isEnabled,
+        report_system_usage_hourly: reportHourly,
       });
 
       if (res.success) {
@@ -261,6 +264,24 @@ export function TelegramSettings({ initialSettings }: TelegramSettingsProps) {
                 <p className="text-xs text-taksu-ink/50">
                   Comma-separated list of Telegram user IDs allowed to interact with the bot.
                 </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 border-t border-gray-50 pt-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-taksu-ink">
+                  Automated Reports
+                </Label>
+                <div className="flex items-center gap-3 bg-taksu-bone/20 p-3 rounded-md border border-taksu-bone/50">
+                  <Switch
+                    checked={reportHourly}
+                    onCheckedChange={setReportHourly}
+                    id="report-hourly-toggle"
+                  />
+                  <Label htmlFor="report-hourly-toggle" className="text-sm text-taksu-ink cursor-pointer">
+                    Report System Usage Hourly (CPU/RAM)
+                  </Label>
+                </div>
               </div>
             </div>
 

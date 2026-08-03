@@ -37,6 +37,7 @@ export async function saveTelegramSettings(formData: {
   chat_id: string;
   acl: string; // Comma-separated user IDs
   is_enabled: boolean;
+  report_system_usage_hourly?: boolean;
 }) {
   try {
     await requireAdmin();
@@ -54,6 +55,7 @@ export async function saveTelegramSettings(formData: {
       chat_id: formData.chat_id.trim(),
       acl: aclArray,
       is_enabled: formData.is_enabled,
+      report_system_usage_hourly: formData.report_system_usage_hourly ?? false,
       updated_at: new Date().toISOString(),
     };
 

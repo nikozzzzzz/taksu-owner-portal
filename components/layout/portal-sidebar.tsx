@@ -24,6 +24,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { SystemResources } from '@/components/system/system-resources';
 
 interface NavItem {
   href: string;
@@ -328,6 +329,11 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
           </li>
         </ul>
       </nav>
+
+      {/* System Resources (Admin only) */}
+      {isAdmin && (
+        <SystemResources />
+      )}
 
       {/* Footer */}
       <div className="border-t border-white/10 px-4 py-4">
