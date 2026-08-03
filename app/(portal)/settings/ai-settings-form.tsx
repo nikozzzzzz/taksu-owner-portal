@@ -46,14 +46,17 @@ export function AiSettingsForm({ owner }: AiSettingsFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="ai_model">Model</Label>
-          <input
-            type="text"
-            id="ai_model"
-            name="ai_model"
-            defaultValue={owner.ai_model || 'claude-3-5-haiku-20241022'}
-            placeholder="e.g. claude-3-5-haiku-20241022"
-            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
+          <Select name="ai_model" defaultValue={owner.ai_model || 'claude-haiku-4-5-20251001'}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="claude-5-fable-202601">Claude Fable 5 ($10/$50)</SelectItem>
+              <SelectItem value="claude-5-opus-202605">Claude Opus 5 ($5/$25)</SelectItem>
+              <SelectItem value="claude-5-sonnet-202601">Claude Sonnet 5 ($3/$15)</SelectItem>
+              <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 ($1/$5)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -80,6 +83,24 @@ export function AiSettingsForm({ owner }: AiSettingsFormProps) {
           className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <p className="text-xs text-muted-foreground">This system prompt guides the AI in deciding prices.</p>
+      </div>
+
+      <div className="bg-taksu-cream/30 p-4 rounded-xl border border-border">
+        <h3 className="text-sm font-semibold text-taksu-forest mb-2">Usage Statistics</h3>
+        <div className="grid grid-cols-3 gap-4 text-sm text-taksu-sage">
+          <div>
+            <span className="block text-xs text-muted-foreground uppercase">API Calls</span>
+            <span className="font-mono">{owner.ai_calls || 0}</span>
+          </div>
+          <div>
+            <span className="block text-xs text-muted-foreground uppercase">Input Tokens</span>
+            <span className="font-mono">{(owner.ai_input_tokens || 0).toLocaleString()}</span>
+          </div>
+          <div>
+            <span className="block text-xs text-muted-foreground uppercase">Output Tokens</span>
+            <span className="font-mono">{(owner.ai_output_tokens || 0).toLocaleString()}</span>
+          </div>
+        </div>
       </div>
 
       <div className="pt-2">

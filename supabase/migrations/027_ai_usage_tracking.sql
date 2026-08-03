@@ -1,0 +1,5 @@
+-- 027_ai_usage_tracking.sql
+ALTER TABLE owners
+ADD COLUMN IF NOT EXISTS ai_calls INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS ai_input_tokens INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS ai_output_tokens INT DEFAULT 0;

@@ -51,7 +51,10 @@ export function AiChatSidebar({ villaId, selectedDates }: AiChatSidebarProps) {
             <p className="text-xs">Ask me something like "Should I lower the price for these dates?"</p>
           </div>
         ) : (
-          messages.map(m => (
+          messages.map(m => {
+            const usageObj = m.annotations?.find(a => (a as any)?.usage) as any;
+            const usage = usageObj?.usage;
+            return (
             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-lg p-3 text-sm ${m.role === 'user' ? 'bg-taksu-jungle text-white' : 'bg-gray-100 text-gray-800'}`}>
                 <div className="flex items-center gap-2 mb-1 opacity-70 text-xs">
@@ -59,9 +62,15 @@ export function AiChatSidebar({ villaId, selectedDates }: AiChatSidebarProps) {
                   <span>{m.role === 'user' ? 'You' : 'AI Assistant'}</span>
                 </div>
                 <div className="whitespace-pre-wrap">{m.content}</div>
+                {usage && (
+                  <div className="mt-2 text-[10px] opacity-60 text-right border-t border-black/10 pt-1">
+                    {usage.promptTokens} input, {usage.completionTokens} output
+                  </div>
+                )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
         {isLoading && (
           <div className="flex justify-start">
