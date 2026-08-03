@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVillaBookings, getVillaPrices } from '@/lib/data/calendar';
-import { streamText, createDataStreamResponse } from 'ai';
+import { streamText, StreamData } from 'ai';
 
 export async function POST(req: Request) {
   try {
@@ -67,45 +67,43 @@ ${owner.ai_pricing_prompt || 'You are a helpful AI pricing assistant for a luxur
     const modelStr = owner.ai_model || 'claude-3-5-haiku-20241022';
     const model = anthropic(modelStr);
 
-    return createDataStreamResponse({
-      execute: dataStream => {
-        const result = streamText({
-          model,
-          messages,
-          system: owner.ai_pricing_prompt,
-          onFinish: async (event) => {
-            try {
-              const { usage } = event;
-              
-              // Annotate the final message with usage stats so the client can display them
-              dataStream.writeMessageAnnotation({ 
-                usage: { 
-                  promptTokens: usage.promptTokens, 
-                  completionTokens: usage.completionTokens 
-                } 
-              });
+    const streamData = new StreamData();
+    const result = await streamText({
+      model,
+      messages,
+      system: owner.ai_pricing_prompt,
+      onFinish: async (event) => {
+        try {
+          const { usage } = event;
+          
+          streamData.append({ 
+            usage: { 
+              promptTokens: usage.promptTokens, 
+              completionTokens: usage.completionTokens 
+            } 
+          });
+          streamData.close();
 
-              const adminSupabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!
-              );
-              const { data: currentOwner } = await adminSupabase.from('owners').select('ai_calls, ai_input_tokens, ai_output_tokens').eq('id', owner.id).single();
-              if (currentOwner) {
-                await adminSupabase.from('owners').update({
-                  ai_calls: (currentOwner.ai_calls || 0) + 1,
-                  ai_input_tokens: (currentOwner.ai_input_tokens || 0) + usage.promptTokens,
-                  ai_output_tokens: (currentOwner.ai_output_tokens || 0) + usage.completionTokens,
-                }).eq('id', owner.id);
-              }
-            } catch (e) {
-              console.error('Failed to update usage', e);
-            }
+          const adminSupabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+          const { data: currentOwner } = await adminSupabase.from('owners').select('ai_calls, ai_input_tokens, ai_output_tokens').eq('id', owner.id).single();
+          if (currentOwner) {
+            await adminSupabase.from('owners').update({
+              ai_calls: (currentOwner.ai_calls || 0) + 1,
+              ai_input_tokens: (currentOwner.ai_input_tokens || 0) + usage.promptTokens,
+              ai_output_tokens: (currentOwner.ai_output_tokens || 0) + usage.completionTokens,
+            }).eq('id', owner.id);
           }
-        });
-
-        result.mergeIntoDataStream(dataStream);
+        } catch (e) {
+          console.error('Failed to update usage', e);
+          streamData.close();
+        }
       }
     });
+
+    return result.toDataStreamResponse({ data: streamData });
   } catch (error: any) {
     console.error('Chat API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
