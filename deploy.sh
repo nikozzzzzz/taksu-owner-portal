@@ -99,38 +99,29 @@ if [ "$SKIP_INSTALL" = "false" ]; then
   success "Dependencies installed"
 fi
 
-log "Stopping PM2 process before build..."
-  ulimit -n 65535 2>/dev/null || true
-if pm2 describe "$APP_NAME" &>/dev/null; then
-  pm2 stop "$APP_NAME"
-fi
-
-log "Building application (pnpm build)..."
-rm -rf .next
-pnpm build
-success "Build complete"
+log "Building and restarting Docker container..."
+docker compose up -d --build
+success "Docker container deployed"
 
 log "Installing Playwright browsers..."
 npx playwright install chromium
 success "Playwright browsers installed"
 
-log "Restarting PM2 process: $APP_NAME..."
-  ulimit -n 65535 2>/dev/null || true
+log "Stopping any legacy PM2 process..."
 if pm2 describe "$APP_NAME" &>/dev/null; then
-  pm2 restart "$APP_NAME"
-else
-  pm2 start npm --name "$APP_NAME" -- start
+  pm2 stop "$APP_NAME"
+  pm2 delete "$APP_NAME"
+  pm2 save
 fi
-pm2 save
-success "PM2 restarted"
+success "Legacy PM2 stopped"
 
 log "Waiting for app to become ready on localhost:3000..."
 MAX_WAIT=60
 WAITED=0
 until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
   if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-    echo "ERROR: App did not start within ${MAX_WAIT}s. Check pm2 logs."
-    pm2 logs "$APP_NAME" --lines 30 --nostream
+    echo "ERROR: App did not start within ${MAX_WAIT}s. Check docker logs."
+    docker logs "$APP_NAME" --tail 30
     exit 1
   fi
   sleep 2
@@ -159,5 +150,5 @@ if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302
   echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 else
   warn "Health check returned HTTP $HTTP_CODE — check server logs"
-  echo "  ssh ${SERVER} pm2 logs ${APP_NAME}"
+  echo "  ssh ${SERVER} docker logs ${APP_NAME}"
 fi

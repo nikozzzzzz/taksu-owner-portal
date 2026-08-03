@@ -12,7 +12,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: owner } = await supabase.from('owners').select('*').eq('auth_user_id', user.id).single();
+    const { data } = await supabase.from('owners').select('*').eq('auth_user_id', user.id).single();
+    const owner = data as any;
     if (!owner) {
       return NextResponse.json({ error: 'Owner not found' }, { status: 404 });
     }
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
     // Fetch contextual data
     const bookings = await getVillaBookings(villaId, startDate, endDate);
     const prices = await getVillaPrices(villaId, startDate, endDate);
-    const { data: villa } = await supabase.from('villas').select('*').eq('id', villaId).single();
+    const { data: villaData } = await supabase.from('villas').select('*').eq('id', villaId).single();
+    const villa = villaData as any;
 
     // Mask guest name and shorten data
     const anonymizedBookings = bookings.map(b => ({
