@@ -5,7 +5,9 @@ import { getAuthUser } from '@/lib/auth/middleware';
 export async function GET() {
   try {
     const user = await getAuthUser();
+    console.log('[API System Resources] Hit. User role:', user?.app_metadata?.role);
     if (!user || (user.app_metadata?.role !== 'admin' && user.app_metadata?.role !== 'root')) {
+      console.log('[API System Resources] Unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -40,6 +42,7 @@ export async function GET() {
     const tickDiff = totalTick2 - totalTick1;
     const cpuUsagePercent = tickDiff === 0 ? 0 : 100 - (idleDiff / tickDiff) * 100;
 
+    console.log('[API System Resources] Success:', cpuUsagePercent.toFixed(1), memoryUsagePercent.toFixed(1));
     return NextResponse.json({
       cpuPercent: cpuUsagePercent.toFixed(1),
       ramPercent: memoryUsagePercent.toFixed(1),
@@ -47,6 +50,7 @@ export async function GET() {
       ramTotalMB: (totalMemory / 1024 / 1024).toFixed(0),
     });
   } catch (error) {
+    console.error('[API System Resources] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

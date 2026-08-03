@@ -39,8 +39,22 @@ export function SystemResources() {
     };
   }, []);
 
-  if (!data || data.error) {
-    return null; // hide if error or not yet loaded
+  if (!data) {
+    return (
+      <div className="border-t border-white/10 px-4 py-3 bg-taksu-forest/50">
+        <div className="text-[10px] uppercase tracking-widest text-white/50 mb-2 font-semibold">System Resources</div>
+        <div className="text-xs text-white/50">Loading...</div>
+      </div>
+    );
+  }
+
+  if (data.error) {
+    return (
+      <div className="border-t border-white/10 px-4 py-3 bg-taksu-forest/50">
+        <div className="text-[10px] uppercase tracking-widest text-white/50 mb-2 font-semibold">System Resources</div>
+        <div className="text-xs text-red-400">Error: {data.error}</div>
+      </div>
+    );
   }
 
   const cpu = parseFloat(data.cpuPercent);
