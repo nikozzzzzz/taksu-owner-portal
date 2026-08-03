@@ -148,7 +148,8 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border p-4 sm:p-6 animate-in relative">
+    <div className="flex flex-col xl:flex-row gap-6 items-start animate-in fade-in">
+      <div className="flex-1 min-w-0 w-full bg-white rounded-xl shadow-sm border border-border p-4 sm:p-6 relative">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-serif text-2xl font-semibold text-taksu-forest">
@@ -287,8 +288,8 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
             <button 
               className="w-full text-left px-3 py-2 hover:bg-taksu-cream transition-colors text-taksu-terracotta flex items-center justify-between"
               onClick={() => {
-                setChatSidebarOpen(true);
                 setContextMenu(null);
+                document.getElementById('ai-chat-input')?.focus();
               }}
             >
               Optimise with AI <span>✨</span>
@@ -328,10 +329,9 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
           }
         }}
       />
+      </div>
 
       <AiChatSidebar
-        open={chatSidebarOpen}
-        onClose={() => setChatSidebarOpen(false)}
         villaId={villaId}
         selectedDates={selectedDates}
       />

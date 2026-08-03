@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
 interface AiChatSidebarProps {
-  open: boolean;
-  onClose: () => void;
   villaId: string;
   selectedDates: Date[];
 }
 
-export function AiChatSidebar({ open, onClose, villaId, selectedDates }: AiChatSidebarProps) {
+export function AiChatSidebar({ villaId, selectedDates }: AiChatSidebarProps) {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: '/api/chat',
     body: {
@@ -27,29 +25,22 @@ export function AiChatSidebar({ open, onClose, villaId, selectedDates }: AiChatS
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Clear messages when selection changes or sidebar closed
+  // Clear messages when selection changes
   useEffect(() => {
-    if (!open) {
-      setMessages([]);
-    }
-  }, [open, selectedDates, setMessages]);
+    setMessages([]);
+  }, [selectedDates, setMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-border shadow-xl flex flex-col z-50 animate-in slide-in-from-right duration-300">
-      <div className="flex items-center justify-between p-4 border-b border-border bg-taksu-cream/50">
+    <div className="w-full lg:w-96 flex-shrink-0 bg-white border border-border shadow-sm rounded-xl flex flex-col h-[600px] lg:h-[calc(100vh-12rem)] lg:sticky top-24">
+      <div className="flex items-center justify-between p-4 border-b border-border bg-taksu-cream/50 rounded-t-xl">
         <div className="flex items-center gap-2 text-taksu-forest font-serif font-medium">
           <Bot className="h-5 w-5 text-taksu-terracotta" />
           <span>AI Pricing Assistant</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -90,6 +81,7 @@ export function AiChatSidebar({ open, onClose, villaId, selectedDates }: AiChatS
       <div className="p-4 border-t border-border bg-white">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
+            id="ai-chat-input"
             value={input}
             onChange={handleInputChange}
             placeholder="Ask about pricing..."

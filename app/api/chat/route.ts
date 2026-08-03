@@ -63,7 +63,7 @@ ${owner.ai_pricing_prompt || 'You are a helpful AI pricing assistant for a luxur
     }
 
     const anthropic = createAnthropic({ apiKey: owner.ai_api_key });
-    const modelStr = owner.ai_model || 'claude-3-5-sonnet-20240620';
+    const modelStr = owner.ai_model || 'claude-3-5-haiku-20241022';
     const model = anthropic(modelStr);
 
     const result = await streamText({
