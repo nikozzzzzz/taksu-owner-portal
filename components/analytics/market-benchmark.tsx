@@ -1,19 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MARKET_BENCHMARKS } from '@/lib/calculations/analytics-calc';
 import { formatCurrency, formatPercent } from '@/lib/utils/currency';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react';
 import type { AnalyticsData } from '@/lib/calculations/analytics-calc';
 
 interface MarketBenchmarkProps {
   data: AnalyticsData;
 }
 
+interface MarketDataState {
+  name: string;
+  occupancy: number;
+  adr_usd: number;
+  revpar_usd: number;
+}
+
 export function MarketBenchmark({ data }: MarketBenchmarkProps) {
   const [selectedRegion, setSelectedRegion] = useState<string>('ubud');
-  const marketData = MARKET_BENCHMARKS[selectedRegion] || MARKET_BENCHMARKS['ubud'];
+  const [marketData, setMarketData] = useState<MarketDataState>(MARKET_BENCHMARKS['ubud']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataSource, setDataSource] = useState<'live' | 'mock' | 'error_fallback'>('mock');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchMarketData() {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/market-benchmark?region=${selectedRegion}`);
+        const result = await response.json();
+        
+        if (mounted) {
+          if (result.data) {
+            setMarketData(result.data);
+          }
+          if (result.source) {
+            setDataSource(result.source);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch market data', error);
+        if (mounted) {
+          setMarketData(MARKET_BENCHMARKS[selectedRegion] || MARKET_BENCHMARKS['ubud']);
+          setDataSource('error_fallback');
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchMarketData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedRegion]);
 
   const getComparison = (villaValue: number, marketValue: number) => {
     if (!villaValue || !marketValue) return { diff: 0, status: 'equal' };
@@ -72,7 +118,7 @@ export function MarketBenchmark({ data }: MarketBenchmarkProps) {
           ))}
         </select>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         <div className="space-y-6 mt-2">
           {metrics.map((metric) => (
             <div key={metric.label} className="space-y-2">
@@ -113,10 +159,27 @@ export function MarketBenchmark({ data }: MarketBenchmarkProps) {
               </div>
             </div>
           ))}
-          <p className="text-xs text-taksu-sage mt-4 pt-4 border-t border-border">
-            * Market data reflects the median performance of comparable properties in {marketData.name} over the selected period. Note: This data is currently hardcoded for demonstration purposes and will be integrated with live market data sources in a future update.
+          <p className="text-xs text-taksu-sage mt-4 pt-4 border-t border-border flex flex-col gap-1">
+            <span>
+              * Market data reflects the median performance of comparable properties in {marketData.name} over the selected period.
+            </span>
+            {dataSource !== 'live' && (
+              <span className="text-taksu-terracotta">
+                Note: Currently using fallback demonstration data. Configure RAPIDAPI_KEY to fetch live market benchmarks.
+              </span>
+            )}
+            {dataSource === 'live' && (
+              <span className="text-taksu-jungle/70">
+                Live data synchronized from market sources.
+              </span>
+            )}
           </p>
         </div>
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center rounded-lg z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-taksu-sage" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
