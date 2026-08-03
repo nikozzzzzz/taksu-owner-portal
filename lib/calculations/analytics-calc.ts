@@ -2,10 +2,31 @@ import type { Database } from '@/lib/supabase/types';
 
 type StatementRow = Database['public']['Tables']['monthly_statements']['Row'];
 
-export const UBUD_MARKET_MEDIAN = {
-  occupancy: 0.65, // Updated to a more realistic Bali figure for demonstration
-  adr_usd: 113,
-  revpar_usd: 73,
+export const MARKET_BENCHMARKS: Record<string, { name: string; occupancy: number; adr_usd: number; revpar_usd: number }> = {
+  ubud: {
+    name: 'Ubud',
+    occupancy: 0.65,
+    adr_usd: 113,
+    revpar_usd: 73,
+  },
+  canggu: {
+    name: 'Canggu',
+    occupancy: 0.72,
+    adr_usd: 140,
+    revpar_usd: 100,
+  },
+  seminyak: {
+    name: 'Seminyak',
+    occupancy: 0.68,
+    adr_usd: 160,
+    revpar_usd: 108,
+  },
+  uluwatu: {
+    name: 'Uluwatu',
+    occupancy: 0.62,
+    adr_usd: 180,
+    revpar_usd: 111,
+  }
 };
 
 export interface AnalyticsData {
@@ -26,7 +47,7 @@ export interface AnalyticsData {
   dailyTrendData: Array<{
     date: string;
     gross_revenue_idr: number;
-    net_payout_idr: number;
+    net_revenue_idr: number;
   }>;
   channelMix: Array<{
     name: string;
@@ -68,14 +89,19 @@ export function calculateAnalytics(
   const trendData: AnalyticsData['trendData'] = [];
   const channelsAggregated: Record<string, number> = {};
 
-  // First, map daily gross revenue from bookings
+  // First, map daily gross and net revenue from bookings
   const dailyGrossMap: Record<string, number> = {};
+  const dailyNetMap: Record<string, number> = {};
   for (const b of bookings) {
     if (!b.check_in_date || !b.check_out_date || !b.nights || b.nights === 0) continue;
     
-    // We use net_to_villa_usd because that aligns with gross revenue before management fee
-    const revenueUsd = Number(b.net_to_villa_usd || b.total_paid_by_guest_usd || 0);
-    const dailyRevenueIdr = (revenueUsd / b.nights) * exchangeRate;
+    // total_paid_by_guest_usd is Gross Revenue
+    // net_to_villa_usd is Net Revenue
+    const grossUsd = Number(b.total_paid_by_guest_usd || b.net_to_villa_usd || 0);
+    const netUsd = Number(b.net_to_villa_usd || 0);
+
+    const dailyGrossIdr = (grossUsd / b.nights) * exchangeRate;
+    const dailyNetIdr = (netUsd / b.nights) * exchangeRate;
     
     // add to each day of the stay (excluding checkout date)
     const checkIn = new Date(b.check_in_date);
@@ -83,7 +109,8 @@ export function calculateAnalytics(
       const d = new Date(checkIn);
       d.setDate(d.getDate() + i);
       const dateStr = d.toISOString().split('T')[0];
-      dailyGrossMap[dateStr] = (dailyGrossMap[dateStr] || 0) + dailyRevenueIdr;
+      dailyGrossMap[dateStr] = (dailyGrossMap[dateStr] || 0) + dailyGrossIdr;
+      dailyNetMap[dateStr] = (dailyNetMap[dateStr] || 0) + dailyNetIdr;
     }
   }
 
@@ -129,20 +156,19 @@ export function calculateAnalytics(
     const monthIndex = date.getMonth(); // 0-based
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate(); // gets last day of the month
 
-    const dailyNetIDR = (Number(st.owner_net_payout_usd) * exchangeRate) / daysInMonth;
-
     for (let day = 1; day <= daysInMonth; day++) {
       const dailyDate = new Date(year, monthIndex, day);
-      // yyyy-mm-dd format for looking up dailyGrossMap
+      // yyyy-mm-dd format for looking up daily maps
       const dateStr = dailyDate.toISOString().split('T')[0];
       const formattedDate = dailyDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       
       const actualGrossIDR = dailyGrossMap[dateStr] || 0;
+      const actualNetIDR = dailyNetMap[dateStr] || 0;
       
       dailyTrendData.push({
         date: formattedDate,
         gross_revenue_idr: Math.round(actualGrossIDR),
-        net_payout_idr: Math.round(dailyNetIDR),
+        net_revenue_idr: Math.round(actualNetIDR),
       });
     }
   }

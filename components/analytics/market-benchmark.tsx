@@ -1,5 +1,8 @@
+'use client';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UBUD_MARKET_MEDIAN } from '@/lib/calculations/analytics-calc';
+import { MARKET_BENCHMARKS } from '@/lib/calculations/analytics-calc';
 import { formatCurrency, formatPercent } from '@/lib/utils/currency';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { AnalyticsData } from '@/lib/calculations/analytics-calc';
@@ -9,6 +12,9 @@ interface MarketBenchmarkProps {
 }
 
 export function MarketBenchmark({ data }: MarketBenchmarkProps) {
+  const [selectedRegion, setSelectedRegion] = useState<string>('ubud');
+  const marketData = MARKET_BENCHMARKS[selectedRegion] || MARKET_BENCHMARKS['ubud'];
+
   const getComparison = (villaValue: number, marketValue: number) => {
     if (!villaValue || !marketValue) return { diff: 0, status: 'equal' };
     const diff = (villaValue - marketValue) / marketValue;
@@ -22,23 +28,23 @@ export function MarketBenchmark({ data }: MarketBenchmarkProps) {
     {
       label: 'RevPAR',
       villa: data.avg_revpar,
-      market: UBUD_MARKET_MEDIAN.revpar_usd,
+      market: marketData.revpar_usd,
       formatter: formatCurrency,
-      comparison: getComparison(data.avg_revpar, UBUD_MARKET_MEDIAN.revpar_usd),
+      comparison: getComparison(data.avg_revpar, marketData.revpar_usd),
     },
     {
       label: 'ADR',
       villa: data.avg_adr,
-      market: UBUD_MARKET_MEDIAN.adr_usd,
+      market: marketData.adr_usd,
       formatter: formatCurrency,
-      comparison: getComparison(data.avg_adr, UBUD_MARKET_MEDIAN.adr_usd),
+      comparison: getComparison(data.avg_adr, marketData.adr_usd),
     },
     {
       label: 'Occupancy',
       villa: data.avg_occupancy,
-      market: UBUD_MARKET_MEDIAN.occupancy,
+      market: marketData.occupancy,
       formatter: formatPercent,
-      comparison: getComparison(data.avg_occupancy, UBUD_MARKET_MEDIAN.occupancy),
+      comparison: getComparison(data.avg_occupancy, marketData.occupancy),
     }
   ];
 
@@ -52,8 +58,19 @@ export function MarketBenchmark({ data }: MarketBenchmarkProps) {
 
   return (
     <Card className="col-span-full xl:col-span-1">
-      <CardHeader>
-        <CardTitle className="text-lg text-taksu-forest">Ubud Market Benchmark</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg text-taksu-forest">Market Benchmark</CardTitle>
+        <select
+          value={selectedRegion}
+          onChange={(e) => setSelectedRegion(e.target.value)}
+          className="text-sm bg-white border border-border rounded-md px-2 py-1 outline-none focus:border-taksu-sage text-taksu-forest shadow-sm"
+        >
+          {Object.entries(MARKET_BENCHMARKS).map(([key, val]) => (
+            <option key={key} value={key}>
+              {val.name}
+            </option>
+          ))}
+        </select>
       </CardHeader>
       <CardContent>
         <div className="space-y-6 mt-2">
@@ -97,7 +114,7 @@ export function MarketBenchmark({ data }: MarketBenchmarkProps) {
             </div>
           ))}
           <p className="text-xs text-taksu-sage mt-4 pt-4 border-t border-border">
-            * Market data reflects the median performance of comparable properties in Ubud over the selected period.
+            * Market data reflects the median performance of comparable properties in {marketData.name} over the selected period. Note: This data is currently hardcoded for demonstration purposes and will be integrated with live market data sources in a future update.
           </p>
         </div>
       </CardContent>

@@ -14,7 +14,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
   return (
     <Card className="col-span-full xl:col-span-2">
       <CardHeader>
-        <CardTitle className="text-lg text-taksu-forest">Revenue & Payout Trend</CardTitle>
+        <CardTitle className="text-lg text-taksu-forest">Revenue Trend</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full mt-4">
@@ -62,8 +62,8 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
               <Line 
                 yAxisId="left"
                 type="monotone" 
-                dataKey="net_payout_idr" 
-                name="Net Payout" 
+                dataKey="net_revenue_idr" 
+                name="Net Revenue" 
                 stroke="#2C3E2C" 
                 strokeWidth={3}
                 dot={false}
