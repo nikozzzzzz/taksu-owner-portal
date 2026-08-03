@@ -14,6 +14,7 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  output: 'standalone',
 
   // ── Security Headers ────────────────────────────────────────────────────────
   async headers() {

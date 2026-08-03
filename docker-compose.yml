@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  taksu-owner-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taksu-owner-portal
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+    # Dropping all privileges and adding only what is necessary
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Read-only root filesystem prevents the attacker from dropping malware 
+    # to /tmp or /var or /usr bin directories.
+    read_only: true
+    tmpfs:
+      - /tmp

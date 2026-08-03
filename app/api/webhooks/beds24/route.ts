@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (authFailed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // ── 2. Parse payload ─────────────────────────────────────────────────────────
   let rawPayload: unknown = null;
   try {
@@ -67,11 +71,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  await logApiCall('inbound', '/api/webhooks/beds24', rawPayload, authFailed ? 401 : 200, null, authFailed ? 'Unauthorized webhook' : null);
-
-  if (authFailed) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  await logApiCall('inbound', '/api/webhooks/beds24', rawPayload, 200, null, null);
 
   const bookings = Array.isArray(rawPayload) ? rawPayload : [rawPayload];
   const supabase = (await createServerSupabaseClient()) as any;
