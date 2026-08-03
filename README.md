@@ -117,6 +117,11 @@ For identical properties grouped into rental pools, bookings are allocated based
 - Internal task tracking system for the Taksu Management team.
 - Secured via RBAC, featuring drag-and-drop mechanics to optimize property management workflows.
 
+### 7. AI Pricing Assistant (Vercel AI SDK)
+- An AI-powered chat interface integrated directly into the booking calendar to help owners analyze occupancy and optimize nightly rates.
+- Securely processes contextual data (anonymized bookings, current prices, and occupancy levels) on the server-side without exposing API secrets or guest PII to the client.
+- Owners can configure their preferred LLM (e.g. Anthropic Claude), provide their API key, and define a custom pricing strategy prompt via the portal's Settings Widget.
+
 ---
 
 ## 🛠️ Local Development & Setup

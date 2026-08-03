@@ -5,27 +5,27 @@ type StatementRow = Database['public']['Tables']['monthly_statements']['Row'];
 export const MARKET_BENCHMARKS: Record<string, { name: string; occupancy: number; adr_usd: number; revpar_usd: number }> = {
   ubud: {
     name: 'Ubud',
-    occupancy: 0.65,
-    adr_usd: 113,
-    revpar_usd: 73,
+    occupancy: 0.70,
+    adr_usd: 210,
+    revpar_usd: 147,
   },
   canggu: {
     name: 'Canggu',
-    occupancy: 0.72,
-    adr_usd: 140,
-    revpar_usd: 100,
+    occupancy: 0.76,
+    adr_usd: 260,
+    revpar_usd: 197,
   },
   seminyak: {
     name: 'Seminyak',
-    occupancy: 0.68,
-    adr_usd: 160,
-    revpar_usd: 108,
+    occupancy: 0.80,
+    adr_usd: 280,
+    revpar_usd: 224,
   },
   uluwatu: {
     name: 'Uluwatu',
-    occupancy: 0.62,
-    adr_usd: 180,
-    revpar_usd: 111,
+    occupancy: 0.68,
+    adr_usd: 320,
+    revpar_usd: 217,
   }
 };
 
@@ -48,6 +48,8 @@ export interface AnalyticsData {
     date: string;
     gross_revenue_idr: number;
     net_revenue_idr: number;
+    occupancy: number;
+    adr_idr: number;
   }>;
   channelMix: Array<{
     name: string;
@@ -92,6 +94,7 @@ export function calculateAnalytics(
   // First, map daily gross and net revenue from bookings
   const dailyGrossMap: Record<string, number> = {};
   const dailyNetMap: Record<string, number> = {};
+  const dailyOccupiedVillas: Record<string, number> = {};
   for (const b of bookings) {
     if (!b.check_in_date || !b.check_out_date || !b.nights || b.nights === 0) continue;
     
@@ -111,10 +114,12 @@ export function calculateAnalytics(
       const dateStr = d.toISOString().split('T')[0];
       dailyGrossMap[dateStr] = (dailyGrossMap[dateStr] || 0) + dailyGrossIdr;
       dailyNetMap[dateStr] = (dailyNetMap[dateStr] || 0) + dailyNetIdr;
+      dailyOccupiedVillas[dateStr] = (dailyOccupiedVillas[dateStr] || 0) + 1;
     }
   }
 
   const dailyTrendData: AnalyticsData['dailyTrendData'] = [];
+  const totalVillas = new Set(statements.map(s => s.villa_id)).size || 1;
 
   for (const st of statements) {
     total_revenue += st.gross_revenue_usd;
@@ -164,11 +169,17 @@ export function calculateAnalytics(
       
       const actualGrossIDR = dailyGrossMap[dateStr] || 0;
       const actualNetIDR = dailyNetMap[dateStr] || 0;
+      const occupiedCount = dailyOccupiedVillas[dateStr] || 0;
+      
+      const occupancy = Math.min(1, occupiedCount / totalVillas);
+      const adr_idr = occupiedCount > 0 ? actualGrossIDR / occupiedCount : 0;
       
       dailyTrendData.push({
         date: formattedDate,
         gross_revenue_idr: Math.round(actualGrossIDR),
         net_revenue_idr: Math.round(actualNetIDR),
+        occupancy: occupancy,
+        adr_idr: Math.round(adr_idr),
       });
     }
   }

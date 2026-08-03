@@ -9,6 +9,7 @@ import { BookingEvent } from './booking-event';
 import { BookingModal } from './booking-modal';
 import { PriceModal } from './price-modal';
 import { ChannelLegend } from './channel-legend';
+import { AiChatSidebar } from './ai-chat-sidebar';
 
 interface MonthCalendarProps {
   villaId: string;
@@ -32,6 +33,7 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
 
   // Close context menu on global click
   useEffect(() => {
@@ -282,6 +284,15 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
             >
               Set Nightly Price
             </button>
+            <button 
+              className="w-full text-left px-3 py-2 hover:bg-taksu-cream transition-colors text-taksu-terracotta flex items-center justify-between"
+              onClick={() => {
+                setChatSidebarOpen(true);
+                setContextMenu(null);
+              }}
+            >
+              Optimise with AI <span>✨</span>
+            </button>
           </div>
         </div>
       )}
@@ -316,6 +327,13 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
             loadBookings(currentDate); // Reload prices after modal closes
           }
         }}
+      />
+
+      <AiChatSidebar
+        open={chatSidebarOpen}
+        onClose={() => setChatSidebarOpen(false)}
+        villaId={villaId}
+        selectedDates={selectedDates}
       />
     </div>
   );

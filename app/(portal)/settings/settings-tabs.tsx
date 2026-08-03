@@ -5,6 +5,7 @@ import { ProfileForm } from './profile-form';
 import { TaxForm } from './tax-form';
 import { PreferencesForm } from './preferences-form';
 import { BankingForm } from './banking-form';
+import { AiSettingsForm } from './ai-settings-form';
 
 interface SettingsTabsProps {
   owner: any; // We'll just pass the owner object down
@@ -38,6 +39,12 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
             className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-1 pb-3 pt-2 text-sm font-medium"
           >
             Banking & Payout
+          </TabsTrigger>
+          <TabsTrigger
+            value="ai_settings"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-1 pb-3 pt-2 text-sm font-medium"
+          >
+            AI Settings
           </TabsTrigger>
         </TabsList>
       </div>
@@ -73,6 +80,18 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
               </p>
             </div>
             <BankingForm owner={owner} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ai_settings" className="m-0 focus-visible:outline-none">
+          <div className="max-w-2xl">
+            <div className="mb-6">
+              <h2 className="text-lg font-medium text-taksu-forest">AI Pricing Optimization</h2>
+              <p className="text-sm text-taksu-sage mt-1">
+                Configure your API key and prompts to allow the AI to optimize pricing and occupancy.
+              </p>
+            </div>
+            <AiSettingsForm owner={owner} />
           </div>
         </TabsContent>
       </div>

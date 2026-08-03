@@ -51,6 +51,13 @@ const updateBankingSchema = z.object({
   crypto_network: z.string().optional().nullable().or(z.literal('')),
 });
 
+const updateAiSettingsSchema = z.object({
+  ai_provider: z.string().optional().nullable().or(z.literal('')),
+  ai_model: z.string().optional().nullable().or(z.literal('')),
+  ai_api_key: z.string().optional().nullable().or(z.literal('')),
+  ai_pricing_prompt: z.string().optional().nullable().or(z.literal('')),
+});
+
 export async function getOwnerProfile() {
   const supabase = await createServerSupabaseClient();
   
@@ -220,6 +227,33 @@ export async function updateBankingInfo(formData: FormData) {
     success: true,
   });
 
+  revalidatePath('/settings');
+  return { success: true };
+}
+
+export async function updateAiSettings(formData: FormData) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const rawPayload = {
+    ai_provider: formData.get('ai_provider') as string || null,
+    ai_model: formData.get('ai_model') as string || null,
+    ai_api_key: formData.get('ai_api_key') as string || null,
+    ai_pricing_prompt: formData.get('ai_pricing_prompt') as string || null,
+  };
+
+  const parsed = updateAiSettingsSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  const { data: owner } = await supabase.from('owners').select('id').eq('auth_user_id', user.id).single();
+  if (!owner) return { success: false, error: 'Owner not found' };
+
+  const { error } = await (supabase.from('owners') as any).update(parsed.data).eq('id', (owner as any).id);
+
+  if (error) return { success: false, error: error.message };
   revalidatePath('/settings');
   return { success: true };
 }
