@@ -85,10 +85,12 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
 
       // Fetch rooms for this property
       let rooms: any[] = [];
+      let roomsApiFailed = false;
       try {
         rooms = await getBeds24Rooms(propertyId);
       } catch (err) {
         console.warn(`[Beds24/sync] Could not fetch rooms for property ${propertyId}:`, err);
+        roomsApiFailed = true;
       }
 
       // Fetch bookings for this property
@@ -114,10 +116,13 @@ export async function runBeds24FullSync(triggeredBy: 'manual' | 'cron' | 'webhoo
             if (b.roomId) uniqueRoomIds.add(b.roomId);
           });
           rooms = Array.from(uniqueRoomIds).map(id => ({ id }));
-        } else {
+        } else if (!roomsApiFailed) {
           // No rooms API access and no bookings yet. 
           // We still want to create the villa at the property level so it shows up in the UI.
           rooms = [{ id: null, name: prop.name }];
+        } else {
+          console.warn(`[Beds24/sync] Rooms API failed and no bookings found for property ${propertyId}. Skipping villa creation to avoid duplicates.`);
+          continue;
         }
       }
 
