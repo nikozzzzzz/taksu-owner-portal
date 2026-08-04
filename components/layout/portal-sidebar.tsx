@@ -247,6 +247,22 @@ export function PortalSidebar({ role = 'guest', onClose }: PortalSidebarProps) {
               </li>
               <li>
                 <Link
+                  href="/admin/guest-chats"
+                  className={`group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname.startsWith('/admin/guest-chats')
+                      ? 'bg-taksu-bamboo text-taksu-forest'
+                      : 'text-white hover:bg-taksu-jungle hover:text-white'
+                  }`}
+                >
+                  <MessageSquare className={`h-4 w-4 flex-shrink-0 ${
+                      pathname.startsWith('/admin/guest-chats') ? 'text-taksu-forest' : 'text-white/70 group-hover:text-white'
+                    }`} 
+                  />
+                  Guest Chats
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/admin/pools"
                   onClick={onClose}
                   className={cn(

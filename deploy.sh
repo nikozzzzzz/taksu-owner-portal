@@ -66,6 +66,7 @@ rsync -avz --delete \
   --exclude='.swc' \
   --exclude='.env*' \
   --exclude='*.log' \
+  --exclude='logs/' \
   --exclude='.DS_Store' \
   "$LOCAL_DIR/" "${SERVER}:${REMOTE_DIR}/"
 success "Source files synced"

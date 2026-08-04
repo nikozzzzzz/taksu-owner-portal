@@ -224,3 +224,41 @@ export async function assignBeds24ToVilla(
 ) {
   return mapVillaToBeds24(villaId, beds24PropertyId, beds24RoomId);
 }
+
+/**
+ * Send a message to a guest via Beds24 and save it locally.
+ */
+export async function sendGuestMessage(bookingId: string, beds24BookingId: number, message: string) {
+  try {
+    await requireAdmin();
+    const { sendBeds24Message } = await import('@/lib/beds24/client');
+    const supabase = (await createServerSupabaseClient()) as any;
+
+    // Send to Beds24
+    const success = await sendBeds24Message(beds24BookingId, message);
+    if (!success) {
+      throw new Error('Failed to send message via Beds24');
+    }
+
+    // Save locally
+    const { data, error } = await supabase
+      .from('guest_messages')
+      .insert({
+        booking_id: bookingId,
+        sender_role: 'host',
+        message: message,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[beds24-actions] Failed to save message locally:', error);
+      // We still return true because it sent successfully to Beds24, but log error
+    }
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[beds24-actions] sendGuestMessage error:', error);
+    return { success: false, error: error.message };
+  }
+}

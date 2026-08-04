@@ -6,12 +6,14 @@ import { TaxForm } from './tax-form';
 import { PreferencesForm } from './preferences-form';
 import { BankingForm } from './banking-form';
 import { AiSettingsForm } from './ai-settings-form';
+import { QuickRepliesForm } from './quick-replies-form';
 
 interface SettingsTabsProps {
-  owner: any; // We'll just pass the owner object down
+  owner: any;
+  isAdmin?: boolean;
 }
 
-export function SettingsTabs({ owner }: SettingsTabsProps) {
+export function SettingsTabs({ owner, isAdmin }: SettingsTabsProps) {
   return (
     <Tabs defaultValue="profile" className="w-full">
       <div className="border-b border-border px-6 pt-4 bg-taksu-cream/50">
@@ -46,6 +48,14 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
           >
             AI Settings
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger
+              value="quick_replies"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-taksu-jungle data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-1 pb-3 pt-2 text-sm font-medium"
+            >
+              Quick Replies
+            </TabsTrigger>
+          )}
         </TabsList>
       </div>
 
@@ -94,6 +104,20 @@ export function SettingsTabs({ owner }: SettingsTabsProps) {
             <AiSettingsForm owner={owner} />
           </div>
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="quick_replies" className="m-0 focus-visible:outline-none">
+            <div className="max-w-2xl">
+              <div className="mb-6">
+                <h2 className="text-lg font-medium text-taksu-forest">Quick Replies</h2>
+                <p className="text-sm text-taksu-sage mt-1">
+                  Manage templates used for guest messaging.
+                </p>
+              </div>
+              <QuickRepliesForm />
+            </div>
+          </TabsContent>
+        )}
       </div>
     </Tabs>
   );

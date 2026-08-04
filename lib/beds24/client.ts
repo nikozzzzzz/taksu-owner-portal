@@ -554,3 +554,34 @@ export async function updateBeds24Booking(
 export async function cancelBeds24Booking(beds24BookingId: number): Promise<void> {
   await updateBeds24Booking(beds24BookingId, { status: 'cancelled' });
 }
+
+/**
+ * Fetch messages for a specific booking.
+ */
+export async function getBeds24Messages(bookingId: number): Promise<any[]> {
+  const result = await request(`/bookings/messages?bookingId=${bookingId}`);
+  return Array.isArray(result) ? result : (result?.data ?? []);
+}
+
+/**
+ * Send a message to a guest via Beds24.
+ */
+export async function sendBeds24Message(bookingId: number, message: string): Promise<boolean> {
+  const result = await request('/bookings/messages', {
+    method: 'POST',
+    body: JSON.stringify([{
+      bookingId,
+      message
+    }])
+  });
+  
+  if (Array.isArray(result) && result[0]) {
+    const b24 = result[0];
+    if (b24.success === false && b24.errors?.length > 0) {
+      const errorMsg = b24.errors[0]?.message || 'Unknown Beds24 error';
+      throw new Error(`Beds24 Error: ${errorMsg}`);
+    }
+    return true;
+  }
+  return false;
+}
