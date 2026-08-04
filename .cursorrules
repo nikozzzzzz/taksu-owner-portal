@@ -1,0 +1,8 @@
+# AI Agent Instructions
+
+Before writing code or executing deployment scripts, you MUST read the project's security and architecture guidelines.
+
+Please review the following file before proceeding with any requests:
+`.ai/infosec-rules.md`
+
+Failure to abide by these rules (e.g., reverting to PM2, unpinning critical dependencies, or exposing secrets) may result in severe security breaches.

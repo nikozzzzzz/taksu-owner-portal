@@ -3,28 +3,37 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Filter, FileText } from 'lucide-react';
+import { ChevronRight, Filter, FileText, Calendar } from 'lucide-react';
 import { formatCurrency, formatPercent } from '@/lib/utils/currency';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StatementRow } from '@/lib/data/statements';
 
+import { VillaSelector } from '@/components/calendar/villa-selector';
+
 interface StatementListProps {
   statements: StatementRow[];
   currentYear: number;
+  villas: any[];
+  selectedVillaId: string;
 }
 
-export function StatementList({ statements, currentYear }: StatementListProps) {
+export function StatementList({ statements, currentYear, villas, selectedVillaId }: StatementListProps) {
   const router = useRouter();
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const years = Array.from(new Set(statements.map(s => s.billing_month.substring(0, 4))));
   if (!years.includes(currentYear.toString())) {
     years.unshift(currentYear.toString());
   }
 
-  const filtered = statements.filter(s => s.billing_month.startsWith(selectedYear));
+  const filtered = statements.filter(s => {
+    const yearMatch = selectedYear === 'all' || s.billing_month.startsWith(selectedYear);
+    const monthMatch = selectedMonth === 'all' || s.billing_month.substring(5, 7) === selectedMonth;
+    return yearMatch && monthMatch;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -39,24 +48,62 @@ export function StatementList({ statements, currentYear }: StatementListProps) {
     }
   };
 
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="font-serif text-xl font-semibold text-taksu-forest">All Statements</h2>
         
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-taksu-sage" />
-          <select 
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="rounded-md border-border bg-white py-1.5 pl-3 pr-8 text-sm text-taksu-forest focus:border-taksu-jungle focus:ring-taksu-jungle"
-            title="Filter by year"
-          >
-            {years.sort().reverse().map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-            <option value="all">All Time</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          {villas.length > 0 && (
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-border shadow-sm h-[38px]">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <VillaSelector villas={villas} selectedId={selectedVillaId} />
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-border shadow-sm h-[38px]">
+            <Calendar className="h-4 w-4 text-gray-400" />
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-sm text-taksu-forest outline-none min-w-[100px]"
+              title="Filter by month"
+            >
+              <option value="all">All Months</option>
+              {months.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-border shadow-sm h-[38px]">
+            <select 
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-transparent text-sm text-taksu-forest outline-none"
+              title="Filter by year"
+            >
+              {years.sort().reverse().map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+              <option value="all">All Time</option>
+            </select>
+          </div>
         </div>
       </div>
 

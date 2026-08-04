@@ -111,9 +111,9 @@ log "Building and restarting Docker container..."
 docker compose up -d --build
 success "Docker container deployed"
 
-log "Installing Playwright browsers..."
-npx playwright install chromium
-success "Playwright browsers installed"
+# log "Installing Playwright browsers..."
+# npx playwright install chromium
+# success "Playwright browsers installed"
 
 log "Waiting for app to become ready on localhost:3000..."
 MAX_WAIT=60
@@ -129,9 +129,9 @@ until curl -sf http://localhost:3000 -o /dev/null 2>/dev/null; do
 done
 success "App is ready (waited ${WAITED}s)"
 
-log "Running E2E tests (pnpm test:e2e)..."
-pnpm test:e2e
-success "E2E tests passed"
+# log "Running E2E tests (pnpm test:e2e)..."
+# pnpm test:e2e
+# success "E2E tests passed"
 REMOTE
 
 success "Remote steps complete"

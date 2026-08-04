@@ -17,38 +17,40 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 });
     }
     
-    // Owner Check
-    const { data: owner } = await supabase
+    // Current User Check
+    const { data: currentUser } = (await supabase
       .from('owners')
-      .select('id, full_name, email, tax_residency_country')
+      .select('id, role')
       .eq('auth_user_id', user.id)
-      .single();
+      .single()) as { data: { id: string; role: string } | null, error: any };
       
-    if (!owner) {
-      return new NextResponse('Owner not found', { status: 404 });
+    if (!currentUser) {
+      return new NextResponse('User not found', { status: 404 });
     }
 
     // Statement Fetch
-    const { data: statement, error } = await supabase
+    let query = supabase
       .from('monthly_statements')
       .select(`
         *,
-        villas(display_name, internal_code)
+        villas(display_name, internal_code),
+        owners(full_name, email, tax_residency_country)
       `)
       .eq('id', resolvedParams.id)
-      .eq('owner_id', (owner as any).id)
-      .in('status', ['approved', 'sent_to_owner', 'paid', 'disputed'])
-      .single();
+      .in('status', ['approved', 'sent_to_owner', 'paid', 'disputed']);
+
+    if (currentUser.role !== 'admin' && currentUser.role !== 'root' && currentUser.role !== 'accountant') {
+      query = query.eq('owner_id', currentUser.id);
+    }
+
+    const { data: statement, error } = await query.single();
 
     if (error || !statement) {
       return new NextResponse('Statement not found or not accessible', { status: 404 });
     }
     
-    // Inject owner data into statement
-    const statementWithOwner = {
-      ...(statement as any),
-      owners: owner
-    };
+    // The statement already includes owners data because of the join: owners(full_name, ...)
+    const statementWithOwner = statement;
 
     // Render PDF
     const stream = await renderToStream(<StatementPdf statement={statementWithOwner as any} />);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Menu, Bell, ChevronDown, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -34,6 +34,9 @@ export function PortalHeader({ ownerName, villas = [], onMenuToggle }: PortalHea
     .join('')
     .toUpperCase();
 
+  const pathname = usePathname();
+  const hideBreadcrumbs = pathname?.startsWith('/statements');
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-taksu-cream/95 px-4 backdrop-blur-sm md:px-6">
       {/* Mobile menu toggle */}
@@ -47,7 +50,7 @@ export function PortalHeader({ ownerName, villas = [], onMenuToggle }: PortalHea
 
       {/* Villa name (breadcrumb style) */}
       <div className="flex-1">
-        {currentVillaName && (
+        {!hideBreadcrumbs && currentVillaName && (
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-taksu-sage sm:block">
               {currentVillaName === 'All Properties' ? 'Portfolio' : 'Your villa'}

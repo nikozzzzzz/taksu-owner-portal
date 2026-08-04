@@ -12,7 +12,7 @@ export default async function StatementDetailPage({ params }: { params: Promise<
   const resolvedParams = await params;
   const owner = await requireOwner();
   
-  const data = await getStatementDetail(resolvedParams.id, owner.id);
+  const data = await getStatementDetail(resolvedParams.id, owner.id, owner.role);
   
   if (!data) {
     notFound();
