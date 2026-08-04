@@ -6,16 +6,45 @@ export const CHANNEL_COLORS: Record<string, { bg: string, text: string, border: 
   other: { bg: 'bg-taksu-sage/10', text: 'text-taksu-sage', border: 'border-taksu-sage/20' },
 };
 
-export function ChannelLegend() {
+export function ChannelLegend({ 
+  selectedChannels = Object.keys(CHANNEL_COLORS), 
+  onChange 
+}: { 
+  selectedChannels?: string[];
+  onChange?: (channels: string[]) => void;
+}) {
+  const toggleChannel = (channel: string) => {
+    if (!onChange) return;
+    
+    if (selectedChannels.includes(channel)) {
+      // Don't allow deselecting all channels
+      if (selectedChannels.length > 1) {
+        onChange(selectedChannels.filter(c => c !== channel));
+      }
+    } else {
+      onChange([...selectedChannels, channel]);
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-4 text-sm mt-4 p-4 bg-white rounded-lg border border-border">
       <span className="font-medium text-taksu-forest mr-2">Channels:</span>
-      {Object.entries(CHANNEL_COLORS).map(([channel, colors]) => (
-        <div key={channel} className="flex items-center gap-2">
-          <div className={`h-3 w-3 rounded-full ${colors.bg.replace('/10', '')} border ${colors.border}`} />
-          <span className="capitalize text-taksu-sage">{channel}</span>
-        </div>
-      ))}
+      {Object.entries(CHANNEL_COLORS).map(([channel, colors]) => {
+        const isSelected = selectedChannels.includes(channel);
+        return (
+          <button 
+            key={channel} 
+            onClick={() => toggleChannel(channel)}
+            disabled={!onChange}
+            className={`flex items-center gap-2 px-2 py-1 rounded-md transition-all ${
+              onChange ? 'cursor-pointer hover:bg-gray-50' : ''
+            } ${!isSelected ? 'opacity-40 grayscale' : ''}`}
+          >
+            <div className={`h-3 w-3 rounded-full ${colors.bg.replace('/10', '')} border ${colors.border}`} />
+            <span className="capitalize text-taksu-sage">{channel}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

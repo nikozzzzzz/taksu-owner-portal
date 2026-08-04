@@ -27,6 +27,7 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
   const [prices, setPrices] = useState<CalendarPrice[]>(initialPrices);
   const [loading, setLoading] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(['airbnb', 'booking', 'agoda', 'direct', 'other']);
   
   // Multi-select & Context Menu states
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -49,6 +50,14 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // Filter bookings by selected channels
+  const filteredBookings = bookings.filter(b => {
+    const channelKey = ['airbnb', 'booking', 'agoda', 'direct'].includes(b.channel.toLowerCase()) 
+      ? b.channel.toLowerCase() 
+      : 'other';
+    return selectedChannels.includes(channelKey);
+  });
 
   const handleNextMonth = async () => {
     const next = addMonths(currentDate, 1);
@@ -190,7 +199,7 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
           const isSelected = selectedDates.some(sd => isSameDay(sd, day));
           
           // Find bookings for this day
-          const dayBookings = bookings.filter(b => {
+          const dayBookings = filteredBookings.filter(b => {
             const start = parseISO(b.check_in_date);
             const end = parseISO(b.check_out_date);
             return isWithinInterval(day, { start, end }) && !isSameDay(day, end);
@@ -254,7 +263,10 @@ export function MonthCalendar({ villaId, initialBookings, fetchBookings, initial
         })}
       </div>
 
-      <ChannelLegend />
+      <ChannelLegend 
+        selectedChannels={selectedChannels}
+        onChange={setSelectedChannels}
+      />
 
       {/* Context Menu Modal */}
       {contextMenu && (
